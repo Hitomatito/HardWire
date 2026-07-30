@@ -4,94 +4,145 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer circuit ring -->
+    <!-- Glowing accent ring -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,24 C37.4,24 24,37.4 24,54 C24,70.6 37.4,84 54,84 C70.6,84 84,70.6 84,54 C84,37.4 70.6,24 54,24z M54,28 C68.4,28 80,39.6 80,54 C80,68.4 68.4,80 54,80 C39.6,80 28,68.4 28,54 C28,39.6 39.6,28 54,28z" />
+        android:fillColor="#00000000"
+        android:pathData="M54,22 C36.3,22 22,36.3 22,54 C22,71.7 36.3,86 54,86 C71.7,86 86,71.7 86,54 C86,36.3 71.7,22 54,22z"
+        android:strokeWidth="1.5"
+        android:strokeColor="#1A00BFA5" />
 
-    <!-- Inner chip body -->
+    <!-- Outer decorative ring - left arc -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M42,40 L66,40 C68.2,40 70,41.8 70,44 L70,64 C70,66.2 68.2,68 66,68 L42,68 C39.8,68 38,66.2 38,64 L38,44 C38,41.8 39.8,40 42,40z" />
+        android:fillColor="#00000000"
+        android:pathData="M30,54 A24,24 0 0,1 54,30"
+        android:strokeWidth="2"
+        android:strokeColor="#4000BFA5"
+        android:strokeLineCap="round" />
 
-    <!-- Left pins -->
+    <!-- Outer decorative ring - right arc -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,78 A24,24 0 0,1 78,54"
+        android:strokeWidth="2"
+        android:strokeColor="#4000BFA5"
+        android:strokeLineCap="round" />
+
+    <!-- Main chip body - rounded rectangle -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,45 L38,45 L38,47 L30,47z" />
+        android:pathData="M40,38 C40,35.8 41.8,34 44,34 L64,34 C66.2,34 68,35.8 68,38 L68,70 C68,72.2 66.2,74 64,74 L44,74 C41.8,74 40,72.2 40,70z" />
+
+    <!-- Chip inner shadow/border -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M42,36 C42,34.9 42.9,34 44,34 L64,34 C65.1,34 66,34.9 66,36 L66,68 C66,69.1 65.1,70 64,70 L44,70 C42.9,70 42,69.1 42,68z"
+        android:strokeWidth="0.5"
+        android:strokeColor="#E0E0E0" />
+
+    <!-- Left pins - 4 pins with rounded ends -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,51 L38,51 L38,53 L30,53z" />
+        android:pathData="M28,42 L40,42 L40,44.5 L28,44.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,57 L38,57 L38,59 L30,59z" />
+        android:pathData="M28,49 L40,49 L40,51.5 L28,51.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,63 L38,63 L38,65 L30,65z" />
+        android:pathData="M28,56 L40,56 L40,58.5 L28,58.5z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,63 L40,63 L40,65.5 L28,65.5z" />
 
     <!-- Right pins -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M70,45 L78,45 L78,47 L70,47z" />
+        android:pathData="M68,42 L80,42 L80,44.5 L68,44.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M70,51 L78,51 L78,53 L70,53z" />
+        android:pathData="M68,49 L80,49 L80,51.5 L68,51.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M70,57 L78,57 L78,59 L70,59z" />
+        android:pathData="M68,56 L80,56 L80,58.5 L68,58.5z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M70,63 L78,63 L78,65 L70,65z" />
+        android:pathData="M68,63 L80,63 L80,65.5 L68,65.5z" />
 
     <!-- Top pins -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M45,30 L47,30 L47,40 L45,40z" />
+        android:pathData="M46,22 L48.5,22 L48.5,34 L46,34z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M51,30 L53,30 L53,40 L51,40z" />
+        android:pathData="M52,22 L54.5,22 L54.5,34 L52,34z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M57,30 L59,30 L59,40 L57,40z" />
+        android:pathData="M58,22 L60.5,22 L60.5,34 L58,34z" />
 
     <!-- Bottom pins -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M45,68 L47,68 L47,78 L45,78z" />
+        android:pathData="M46,74 L48.5,74 L48.5,86 L46,86z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M51,68 L53,68 L53,78 L51,78z" />
+        android:pathData="M52,74 L54.5,74 L54.5,86 L52,86z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M57,68 L59,68 L59,78 L57,78z" />
+        android:pathData="M58,74 L60.5,74 L60.5,86 L58,86z" />
 
-    <!-- Center "H" lettermark for Hardwire -->
-    <!-- Left vertical stroke -->
+    <!-- Bold "H" lettermark - left vertical -->
     <path
         android:fillColor="#0D47A1"
-        android:pathData="M46,46 L49,46 L49,62 L46,62z" />
-    <!-- Right vertical stroke -->
-    <path
-        android:fillColor="#0D47A1"
-        android:pathData="M59,46 L62,46 L62,62 L59,62z" />
-    <!-- Horizontal bar -->
-    <path
-        android:fillColor="#0D47A1"
-        android:pathData="M49,52.5 L59,52.5 L59,55.5 L49,55.5z" />
+        android:pathData="M45,42 L49,42 L49,66 L45,66z" />
 
-    <!-- Circuit trace accents (top-left) -->
+    <!-- Bold "H" lettermark - right vertical -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M24,24 L24,30 L27,30 L27,27 L30,27 L30,24z" />
-    <!-- Circuit trace accents (top-right) -->
+        android:fillColor="#0D47A1"
+        android:pathData="M59,42 L63,42 L63,66 L59,66z" />
+
+    <!-- Bold "H" lettermark - horizontal bar -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M84,24 L84,30 L81,30 L81,27 L78,27 L78,24z" />
-    <!-- Circuit trace accents (bottom-left) -->
+        android:fillColor="#0D47A1"
+        android:pathData="M49,51 L59,51 L59,57 L49,57z" />
+
+    <!-- Accent dot - top left -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M24,84 L24,78 L27,78 L27,81 L30,81 L30,84z" />
-    <!-- Circuit trace accents (bottom-right) -->
+        android:fillColor="#00BFA5"
+        android:pathData="M32,32 A2.5,2.5 0 1,1 32.01,32z" />
+
+    <!-- Accent dot - bottom right -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M84,84 L84,78 L81,78 L81,81 L78,81 L78,84z" />
+        android:fillColor="#00BFA5"
+        android:pathData="M76,76 A2.5,2.5 0 1,1 76.01,76z" />
+
+    <!-- Circuit trace accent - top left corner -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M24,24 L32,24 L32,28"
+        android:strokeWidth="1.5"
+        android:strokeColor="#3000BFA5"
+        android:strokeLineCap="round" />
+
+    <!-- Circuit trace accent - top right corner -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M84,24 L76,24 L76,28"
+        android:strokeWidth="1.5"
+        android:strokeColor="#3000BFA5"
+        android:strokeLineCap="round" />
+
+    <!-- Circuit trace accent - bottom left corner -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M24,84 L32,84 L32,80"
+        android:strokeWidth="1.5"
+        android:strokeColor="#3000BFA5"
+        android:strokeLineCap="round" />
+
+    <!-- Circuit trace accent - bottom right corner -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M84,84 L76,84 L76,80"
+        android:strokeWidth="1.5"
+        android:strokeColor="#3000BFA5"
+        android:strokeLineCap="round" />
 </vector>
