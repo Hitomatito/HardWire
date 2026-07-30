@@ -478,29 +478,15 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
     private suspend fun extractImeis(id: String): List<String> = coroutineScope {
         val results = mutableListOf<String>()
 
-        // WiFi connections are fragile with concurrent commands - detect device type
-        val device = devices.value.find { it.id == id }
-        val isWifi = device?.type == DeviceType.NETWORK
-        if (isWifi) {
-            Log.d("HW:DevMgr", "[extractImeis] modo WiFi: comandos secuenciales")
-        }
+        Log.d("HW:DevMgr", "[extractImeis] iniciando extraccion IMEI para id=$id")
 
         Log.d("HW:DevMgr", "[extractImeis] FASE 1: cmd phone get-imei (Android 12+)")
         val hasCmd = executeSafe(id, "which cmd").trim()
         if (hasCmd.isNotBlank() && !hasCmd.contains("not found")) {
-            val raw0: String
-            val raw1: String
-            if (isWifi) {
-                // Serial for WiFi to avoid connection drops
-                raw0 = executeSafe(id, DeviceCommand.IMEI_V2_0.command)
-                raw1 = executeSafe(id, DeviceCommand.IMEI_V2_1.command)
-            } else {
-                // Parallel for USB (fast and reliable)
-                val v2_0 = async { executeSafe(id, DeviceCommand.IMEI_V2_0.command) }
-                val v2_1 = async { executeSafe(id, DeviceCommand.IMEI_V2_1.command) }
-                raw0 = v2_0.await()
-                raw1 = v2_1.await()
-            }
+            // Always sequential: concurrent conn.open() overwhelms the USB request
+            // queue (BufferUnderflowException / fail to queue read UsbRequest)
+            val raw0 = executeSafe(id, DeviceCommand.IMEI_V2_0.command)
+            val raw1 = executeSafe(id, DeviceCommand.IMEI_V2_1.command)
             val imei0 = CommandParser.parseImeiV2(raw0)
             val imei1 = CommandParser.parseImeiV2(raw1)
             if (imei0.isNotBlank()) results.add(imei0)
@@ -514,23 +500,14 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         }
 
         Log.d("HW:DevMgr", "[extractImeis] FASE 1 vacio, FASE 2: service call iphonesubinfo")
-        val legacy: List<String>
-        if (isWifi) {
-            // Serial for WiFi - these commands are especially fragile over TCP
-            legacy = listOf(
-                executeSafe(id, DeviceCommand.IMEI.command),
-                executeSafe(id, DeviceCommand.IMEI_SLOT2.command),
-                executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command),
-                executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command)
-            )
-        } else {
-            legacy = listOf(
-                async { executeSafe(id, DeviceCommand.IMEI.command) },
-                async { executeSafe(id, DeviceCommand.IMEI_SLOT2.command) },
-                async { executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command) },
-                async { executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command) }
-            ).map { it.await() }
-        }
+        // Always sequential: service call commands are especially fragile when
+        // multiple streams are opened simultaneously
+        val legacy = listOf(
+            executeSafe(id, DeviceCommand.IMEI.command),
+            executeSafe(id, DeviceCommand.IMEI_SLOT2.command),
+            executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command),
+            executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command)
+        )
         val legacyResults = legacy
             .mapNotNull { raw -> CommandParser.parseImei(raw) }
             .filter { it.isNotBlank() }
