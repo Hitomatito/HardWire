@@ -151,6 +151,8 @@
     <string name="disconnect">Desconectar</string>
     <string name="rename">Renombrar</string>
     <string name="delete">Eliminar</string>
+    <string name="delete_confirm_title">Eliminar dispositivo</string>
+    <string name="delete_confirm_message">Eliminar \"%s\"? Esta accion no se puede deshacer.</string>
     <string name="compare_devices">Comparar dispositivos</string>
 
     <!-- Top Bar -->

@@ -22,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.data.model.DeviceType
 import com.hitomatito.hardwire.data.model.ManagedDevice
@@ -98,6 +100,7 @@ private fun HardwireApp(viewModel: MainViewModel) {
     var renameTarget by remember { mutableStateOf<ManagedDevice?>(null) }
     var renameText by remember { mutableStateOf("") }
     var showCompareDialog by remember { mutableStateOf(false) }
+    var deleteTarget by remember { mutableStateOf<ManagedDevice?>(null) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -120,7 +123,9 @@ private fun HardwireApp(viewModel: MainViewModel) {
                     scope.launch { drawerState.close() }
                 },
                 onDisconnect = { viewModel.disconnectDevice(it) },
-                onRemove = { viewModel.removeDevice(it) },
+                onRemove = { id ->
+                    deleteTarget = devices.find { it.id == id }
+                },
                 onRename = { device ->
                     renameTarget = device
                     renameText = device.name
@@ -207,7 +212,7 @@ private fun HardwireApp(viewModel: MainViewModel) {
     if (renameTarget != null) {
         AlertDialog(
             onDismissRequest = { renameTarget = null },
-            title = { Text("Renombrar dispositivo") },
+            title = { Text(stringResource(R.string.rename_device_title)) },
             text = {
                 OutlinedTextField(
                     value = renameText,
@@ -220,10 +225,27 @@ private fun HardwireApp(viewModel: MainViewModel) {
                 TextButton(onClick = {
                     renameTarget?.let { viewModel.renameDevice(it.id, renameText.trim().ifBlank { it.name }) }
                     renameTarget = null
-                }) { Text("Guardar") }
+                }) { Text(stringResource(R.string.save)) }
             },
             dismissButton = {
-                TextButton(onClick = { renameTarget = null }) { Text("Cancelar") }
+                TextButton(onClick = { renameTarget = null }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
+    }
+
+    if (deleteTarget != null) {
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text(stringResource(R.string.delete_confirm_title)) },
+            text = { Text(stringResource(R.string.delete_confirm_message, deleteTarget?.name ?: "")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteTarget?.let { viewModel.removeDevice(it.id) }
+                    deleteTarget = null
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

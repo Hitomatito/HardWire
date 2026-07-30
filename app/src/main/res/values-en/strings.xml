@@ -151,6 +151,8 @@
     <string name="disconnect">Disconnect</string>
     <string name="rename">Rename</string>
     <string name="delete">Delete</string>
+    <string name="delete_confirm_title">Delete device</string>
+    <string name="delete_confirm_message">Delete \"%s\"? This action cannot be undone.</string>
     <string name="compare_devices">Compare devices</string>
 
     <!-- Top Bar -->
