@@ -1,3 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hardwire</string>
+    <string name="app_name">HARDWIRE</string>
+    <string name="app_subtitle">Inspector de hardware via ADB</string>
+
+    <!-- Connection Screen - Status -->
+    <string name="status_connected">Conectado</string>
+    <string name="status_connecting_usb">Conectando por USB…</string>
+    <string name="status_connecting_wifi">Conectando por WiFi…</string>
+    <string name="status_gathering_data">Leyendo datos del dispositivo…</string>
+    <string name="status_detecting">Detectando dispositivo…</string>
+    <string name="status_requesting_permission">Autoriza la conexion</string>
+    <string name="status_scanning">Buscando en la red…</string>
+    <string name="status_error">No se pudo conectar</string>
+    <string name="status_no_connection">Sin conexion</string>
+    <string name="device_ready">Dispositivo listo</string>
+    <string name="accept_adb_invitation">Acepta la invitacion ADB en el telefono</string>
+
+    <!-- Connection Screen - Buttons & Actions -->
+    <string name="connect_device">Conectar dispositivo</string>
+    <string name="connect_usb">Conectar por USB</string>
+    <string name="connecting">Conectando…</string>
+    <string name="scan_network">Buscar en red (WiFi)</string>
+    <string name="scanning_network">Escaneando red…</string>
+    <string name="add_by_ip">Agregar por IP</string>
+    <string name="ip_placeholder">IP (ej. 192.168.1.50)</string>
+    <string name="add">Agregar</string>
+    <string name="searching_adb_devices">Buscando dispositivos ADB…</string>
+    <string name="devices_found">Dispositivos encontrados (%d)</string>
+    <string name="port_5555_tap">Puerto 5555 - Toca para conectar</string>
+
+    <!-- Connection Screen - How to start -->
+    <string name="how_to_start">Como empezar</string>
+    <string name="step_enable_debugging">Habilita Depuracion USB en el dispositivo objetivo</string>
+    <string name="step_connect_usb">Conecta por cable USB OTG y acepta la autorizacion ADB</string>
+    <string name="step_use_wifi">Usa Buscar en red para conectar via WiFi sin cable</string>
+
+    <!-- Info Screen - Section Titles -->
+    <string name="section_general">General</string>
+    <string name="section_cpu">Procesador</string>
+    <string name="section_memory">Memoria RAM</string>
+    <string name="section_battery">Bateria</string>
+    <string name="section_display">Pantalla</string>
+    <string name="section_storage">Almacenamiento</string>
+    <string name="section_cameras">Camaras</string>
+    <string name="section_sensors">Sensores</string>
+    <string name="section_network">Red</string>
+    <string name="section_system">Sistema</string>
+
+    <!-- Info Screen - Loading -->
+    <string name="loading_switching_wifi">Conectando via WiFi…</string>
+    <string name="loading_device_info">Obteniendo informacion del dispositivo…</string>
+
+    <!-- Info Screen - Notifications -->
+    <string name="wifi_active">Conexion WiFi activa</string>
+    <string name="network_active">Conexion de red activa</string>
+    <string name="disconnect_usb_hint">Ya puedes desconectar el cable USB.</string>
+    <string name="connected_via_network">Conectado via red (%s:5555).</string>
+    <string name="connection_error">Error de conexion</string>
+    <string name="switch_to_wifi">Cambiar a WiFi</string>
+
+    <!-- Info Screen - Offline Banner -->
+    <string name="offline_banner_title">Datos guardados (sin conexion)</string>
+    <string name="offline_banner_detail">Informacion obtenida localmente. Actualizado %s.</string>
+    <string name="unknown_date">fecha desconocida</string>
+    <string name="time_moment">hace un momento</string>
+    <string name="time_minutes">hace %d min</string>
+    <string name="time_hours">hace %d h</string>
+    <string name="time_days">hace %d d</string>
+
+    <!-- Info Screen - Common Labels -->
+    <string name="no_data">Sin datos</string>
+    <string name="more_sensors">+ %d sensores mas</string>
+    <string name="copy_label">Copiar %s</string>
+    <string name="copied_label">%s copiado</string>
+    <string name="collapse">Colapsar</string>
+    <string name="expand">Expandir</string>
+
+    <!-- Info Screen - General Card -->
+    <string name="label_manufacturer">Fabricante</string>
+    <string name="label_model">Modelo</string>
+    <string name="label_market_name">Nombre comercial</string>
+    <string name="label_device">Dispositivo</string>
+    <string name="label_board">Board</string>
+    <string name="label_hardware">Hardware</string>
+    <string name="label_android">Android</string>
+    <string name="label_sdk">SDK</string>
+    <string name="label_serial">Serial</string>
+    <string name="label_imei">IMEI</string>
+    <string name="label_imei_number">IMEI %d</string>
+    <string name="label_baseband">Baseband</string>
+    <string name="label_fingerprint">Fingerprint</string>
+
+    <!-- Info Screen - CPU Card -->
+    <string name="label_soc_manufacturer">Fabricante SoC</string>
+    <string name="label_config">Configuracion</string>
+    <string name="label_cores">Nucleos</string>
+    <string name="label_gpu">GPU</string>
+    <string name="label_architecture">Arquitectura</string>
+    <string name="label_processor">Procesador</string>
+    <string name="label_bogomips">BogoMIPS</string>
+
+    <!-- Info Screen - Memory Card -->
+    <string name="label_ram_total">RAM Total</string>
+    <string name="label_available">Disponible</string>
+    <string name="label_free_real">Libre (real)</string>
+    <string name="label_cache">Cache</string>
+    <string name="label_swap_total">Swap Total</string>
+    <string name="label_swap_free">Swap Libre</string>
+
+    <!-- Info Screen - Battery Card -->
+    <string name="label_battery">Bateria</string>
+    <string name="label_health">Salud</string>
+    <string name="label_technology">Tecnologia</string>
+    <string name="label_temperature">Temperatura</string>
+    <string name="label_voltage">Voltaje</string>
+    <string name="label_plugged">Cargador</string>
+
+    <!-- Info Screen - Display Card -->
+    <string name="label_resolution">Resolucion</string>
+    <string name="label_density">Densidad</string>
+    <string name="label_refresh_rate">Refresh Rate</string>
+
+    <!-- Info Screen - Storage Card -->
+    <string name="label_used">Usado: %s</string>
+    <string name="label_free">Libre: %s</string>
+
+    <!-- Info Screen - Camera Card -->
+    <string name="camera_id">Camera %s</string>
+    <string name="camera_title" formatted="false">%s - %s</string>
+    <string name="label_sizes">Tamanos</string>
+    <string name="label_focal_length">Distancia focal</string>
+    <string name="label_flash">Flash</string>
+
+    <!-- Info Screen - Build Card -->
+    <string name="label_brand">Brand</string>
+    <string name="label_product">Producto</string>
+    <string name="label_display_id">Display</string>
+    <string name="label_id">ID</string>
+    <string name="label_tags">Tags</string>
+    <string name="label_type">Type</string>
+    <string name="label_host">Host</string>
+    <string name="label_kernel">Kernel</string>
+
+    <!-- Device Drawer -->
+    <string name="drawer_devices">Dispositivos</string>
+    <string name="drawer_no_devices">Ningun dispositivo</string>
+    <string name="drawer_add_hint">Agrega uno para empezar</string>
+    <string name="add_device">Agregar dispositivo</string>
+    <string name="device_options">Opciones</string>
+    <string name="disconnect">Desconectar</string>
+    <string name="rename">Renombrar</string>
+    <string name="delete">Eliminar</string>
+
+    <!-- Top Bar -->
+    <string name="menu">Menu</string>
+    <string name="add_device_subtitle">Agregar dispositivo</string>
+
+    <!-- Rename Dialog -->
+    <string name="rename_device_title">Renombrar dispositivo</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Main Activity -->
+    <string name="device_disconnected">Dispositivo desconectado</string>
+
+    <!-- Permissions Screen -->
+    <string name="permissions_required">Permisos requeridos</string>
+    <string name="permissions_description">Hardwire necesita los siguientes permisos para funcionar correctamente.</string>
+    <string name="grant_permissions">Conceder permisos</string>
+    <string name="open_settings">Abrir configuracion</string>
+
+    <!-- Device Manager - Error Messages -->
+    <string name="error_usb_denied">Permiso USB denegado. Desconecta y reconecta el USB, luego toca \'Conectar USB\'. Si el dialogo no aparece, revisa la configuracion USB del dispositivo.</string>
+    <string name="error_no_usb">No se detecto ningun dispositivo USB</string>
+    <string name="error_unstable_connection">Conexion inestable. Intenta de nuevo.</string>
+    <string name="error_unauthorized">Acepta la autorizacion ADB en el dispositivo objetivo (pantalla del dispositivo) y vuelve a intentar.</string>
+    <string name="error_device_unreachable" formatted="false">No se alcanza el dispositivo (%s:%d). \u00BFEncendido y en la misma red?</string>
+    <string name="error_connect_failed">No se pudo conectar. Acepta la autorizacion ADB en el dispositivo objetivo y vuelve a intentar, o verifica la depuracion por red.</string>
+    <string name="error_wifi_switch">Error al cambiar a WiFi</string>
+    <string name="error_connection_unstable">Conexion inestable. Intenta de nuevo.</string>
+
+    <!-- CommandParser - Battery Status -->
+    <string name="battery_unknown">Desconocido</string>
+    <string name="battery_charging">Cargando</string>
+    <string name="battery_discharging">Descargando</string>
+    <string name="battery_not_charging">Sin carga</string>
+    <string name="battery_full">Completo</string>
+
+    <!-- CommandParser - Battery Health -->
+    <string name="health_unknown">Desconocido</string>
+    <string name="health_good">Buena</string>
+    <string name="health_overheat">Sobrecalentada</string>
+    <string name="health_dead">Muerta</string>
+    <string name="health_overvoltage">Sobrevoltaje</string>
+    <string name="health_failure">Fallo</string>
+    <string name="health_cold">Fria</string>
+
+    <!-- CommandParser - Plugged -->
+    <string name="plugged_wireless">Inalambrico</string>
+    <string name="plugged_none">Sin carga</string>
+
+    <!-- CommandParser - Camera Facing -->
+    <string name="facing_back">Trasera</string>
+    <string name="facing_front">Frontal</string>
+    <string name="facing_unknown">Desconocido</string>
+    <string name="flash_yes">Si</string>
+    <string name="flash_no">No</string>
+
+    <!-- Device Type -->
+    <string name="device_type_usb">USB</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Muestra el estado del dispositivo conectado</string>
+    <string name="use_dynamic_colors">Usar colores del sistema</string>
+
+    <!-- Export & Error Handling -->
+    <string name="export_report">Exportar informe</string>
+    <string name="share_report">Compartir</string>
+    <string name="copy_to_clipboard">Copiar al portapapeles</string>
+    <string name="report_exported">Informe exportado</string>
+    <string name="report_copied">Copiado al portapapeles</string>
+    <string name="retry">Reintentar</string>
+    <string name="error_offline">Dispositivo fuera de linea</string>
 </resources>

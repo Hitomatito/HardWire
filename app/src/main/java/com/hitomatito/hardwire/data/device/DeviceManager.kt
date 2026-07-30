@@ -19,6 +19,8 @@ import com.hitomatito.hardwire.data.model.ManagedDevice
 import com.hitomatito.hardwire.data.model.MemoryInfo
 import com.hitomatito.hardwire.data.model.NetworkInfo
 import com.hitomatito.hardwire.data.model.StorageInfo
+import com.hitomatito.hardwire.data.chipset.ChipsetRepository
+import com.hitomatito.hardwire.data.history.HistoryRepository
 import com.hitomatito.hardwire.data.network.NetworkScanner
 import com.hitomatito.hardwire.data.usb.UsbAdbManager
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +46,7 @@ sealed class AddDeviceResult {
     data class AlreadyExists(val device: ManagedDevice) : AddDeviceResult()
 }
 
-class DeviceManager(private val context: Context) {
+class DeviceManager(private val context: Context, private val chipsetRepository: ChipsetRepository? = null, private val historyRepository: HistoryRepository? = null) {
 
     private val usbManager = UsbAdbManager(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -282,6 +284,7 @@ class DeviceManager(private val context: Context) {
             setInfo(id, info)
             if (isInfoValid(info)) {
                 saveInfo(id, info)
+                historyRepository?.saveSnapshot(id, info)
                 _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
             } else {
                 Log.w("HW:DevMgr", "[connectDevice] info INVALIDA (posiblemente 0/vacia), NO se persiste")
@@ -408,6 +411,7 @@ class DeviceManager(private val context: Context) {
                 if (isInfoValid(info)) {
                     setInfo(id, info)
                     saveInfo(id, info)
+                    historyRepository?.saveSnapshot(id, info)
                     _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
                     Log.d("HW:DevMgr", "[refreshDevice] info actualizada OK")
                 } else {
@@ -647,6 +651,13 @@ class DeviceManager(private val context: Context) {
         val soc0Machine = bulk.soc0Machine.trim()
         val cpuAbi = bulk.cpuAbi.trim().fallback(old?.cpu?.cpuAbi)
 
+        val chipsetInfo = chipsetRepository?.let { repo ->
+            val codename = bulk.socPlatform.trim().ifBlank { bulk.socChipname.trim() }
+            if (codename.isNotBlank()) {
+                try { repo.resolve(codename) } catch (_: Exception) { null }
+            } else null
+        }
+
         val imeis = runCatching { extractImeis(id) }.getOrNull().orEmpty()
             .ifEmpty { old?.general?.imeis ?: emptyList() }
 
@@ -664,7 +675,7 @@ class DeviceManager(private val context: Context) {
             cpu = if (bulk.cpuInfo.isNotBlank())
                 CommandParser.parseCpuInfo(
                     bulk.cpuInfo, socModel, socManufacturer, socChipname, socPlatform,
-                    socVendorModel, soc0Family, soc0Machine, chipsetInfo = null, cpuAbi = cpuAbi
+                    socVendorModel, soc0Family, soc0Machine, chipsetInfo = chipsetInfo, cpuAbi = cpuAbi
                 ) else old?.cpu ?: CpuInfo(),
             memory = if (bulk.memInfo.isNotBlank()) CommandParser.parseMemoryInfo(bulk.memInfo) else old?.memory ?: MemoryInfo(),
             battery = if (bulk.battery.isNotBlank()) CommandParser.parseBatteryInfo(bulk.battery) else old?.battery ?: BatteryInfo(),

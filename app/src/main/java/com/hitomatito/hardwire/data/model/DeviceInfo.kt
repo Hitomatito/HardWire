@@ -1,5 +1,8 @@
 package com.hitomatito.hardwire.data.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DeviceInfo(
     val general: GeneralInfo = GeneralInfo(),
     val cpu: CpuInfo = CpuInfo(),
@@ -13,6 +16,7 @@ data class DeviceInfo(
     val build: BuildInfo = BuildInfo()
 )
 
+@Serializable
 data class GeneralInfo(
     val manufacturer: String = "",
     val model: String = "",
@@ -28,6 +32,7 @@ data class GeneralInfo(
     val phone: String = ""
 )
 
+@Serializable
 data class CpuInfo(
     val socName: String = "",
     val socManufacturer: String = "",
@@ -42,6 +47,7 @@ data class CpuInfo(
     val cpuConfig: String = ""
 )
 
+@Serializable
 data class MemoryInfo(
     val totalRamBytes: Long = 0,
     val freeRamBytes: Long = 0,
@@ -59,6 +65,7 @@ data class MemoryInfo(
     val usagePercent: Float = 0f
 )
 
+@Serializable
 data class BatteryInfo(
     val level: String = "",
     val scale: String = "",
@@ -71,6 +78,7 @@ data class BatteryInfo(
     val levelPercent: Float = 0f
 )
 
+@Serializable
 data class DisplayInfo(
     val resolution: String = "",
     val density: String = "",
@@ -79,10 +87,12 @@ data class DisplayInfo(
     val displayInfo: String = ""
 )
 
+@Serializable
 data class StorageInfo(
     val filesystems: List<FileSystemInfo> = emptyList()
 )
 
+@Serializable
 data class FileSystemInfo(
     val filesystem: String = "",
     val sizeFormatted: String = "",
@@ -95,6 +105,7 @@ data class FileSystemInfo(
     val usagePercent: Float = 0f
 )
 
+@Serializable
 data class CameraInfo(
     val id: String = "",
     val facing: String = "",
@@ -104,6 +115,7 @@ data class CameraInfo(
     val focalLength: String = ""
 )
 
+@Serializable
 data class SensorInfo(
     val name: String = "",
     val type: String = "",
@@ -114,11 +126,13 @@ data class SensorInfo(
     val power: String = ""
 )
 
+@Serializable
 data class NetworkInfo(
     val interfaces: List<NetworkInterface> = emptyList(),
     val wifiInterface: String = ""
 )
 
+@Serializable
 data class NetworkInterface(
     val name: String = "",
     val ipAddress: String = "",
@@ -126,6 +140,7 @@ data class NetworkInterface(
     val flags: String = ""
 )
 
+@Serializable
 data class BuildInfo(
     val board: String = "",
     val bootloader: String = "",
