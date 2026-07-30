@@ -130,6 +130,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         deviceManager.switchActiveToWifi()
     }
 
+    private val _comparisonIds = MutableStateFlow<Pair<String, String>?>(null)
+    val comparisonIds: StateFlow<Pair<String, String>?> = _comparisonIds.asStateFlow()
+
+    val showComparison: StateFlow<Boolean> = _comparisonIds.map { it != null }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val comparisonDevice1: StateFlow<ManagedDevice?> = combine(devices, _comparisonIds) { list, ids ->
+        ids?.let { list.find { d -> d.id == it.first } }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val comparisonDevice2: StateFlow<ManagedDevice?> = combine(devices, _comparisonIds) { list, ids ->
+        ids?.let { list.find { d -> d.id == it.second } }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val comparisonInfo1: StateFlow<DeviceInfo?> = combine(deviceManager.infos, _comparisonIds) { infos, ids ->
+        ids?.let { infos[it.first] }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val comparisonInfo2: StateFlow<DeviceInfo?> = combine(deviceManager.infos, _comparisonIds) { infos, ids ->
+        ids?.let { infos[it.second] }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun startComparison(id1: String, id2: String) {
+        Log.d("HW:VM", "[startComparison] comparando $id1 vs $id2")
+        _comparisonIds.value = Pair(id1, id2)
+    }
+
+    fun exitComparison() {
+        Log.d("HW:VM", "[exitComparison] cerrando comparacion")
+        _comparisonIds.value = null
+    }
+
     override fun onCleared() {
         deviceManager.dispose()
     }

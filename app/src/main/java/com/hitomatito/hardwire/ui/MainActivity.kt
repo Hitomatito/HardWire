@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,8 +30,10 @@ import com.hitomatito.hardwire.data.model.DeviceType
 import com.hitomatito.hardwire.data.model.ManagedDevice
 import com.hitomatito.hardwire.ui.components.DeviceDrawerContent
 import com.hitomatito.hardwire.ui.components.HardwireTopBar
+import com.hitomatito.hardwire.ui.screens.ComparisonScreen
 import com.hitomatito.hardwire.ui.screens.ConnectionScreen
 import com.hitomatito.hardwire.ui.screens.InfoScreen
+import com.hitomatito.hardwire.ui.theme.HardwirePrimary
 import com.hitomatito.hardwire.ui.theme.HardwireTheme
 import com.hitomatito.hardwire.ui.permissions.PermissionsScreen
 import com.hitomatito.hardwire.ui.permissions.allPermissionsGranted
@@ -80,6 +83,11 @@ private fun HardwireApp(viewModel: MainViewModel) {
     val activeUpdatedAt by viewModel.activeUpdatedAt.collectAsState()
     val usbState by viewModel.usbState.collectAsState()
     val message by viewModel.message.collectAsState()
+    val showComparison by viewModel.showComparison.collectAsState()
+    val comparisonDev1 by viewModel.comparisonDevice1.collectAsState()
+    val comparisonDev2 by viewModel.comparisonDevice2.collectAsState()
+    val comparisonInfo1 by viewModel.comparisonInfo1.collectAsState()
+    val comparisonInfo2 by viewModel.comparisonInfo2.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openDrawer = {
@@ -89,6 +97,7 @@ private fun HardwireApp(viewModel: MainViewModel) {
 
     var renameTarget by remember { mutableStateOf<ManagedDevice?>(null) }
     var renameText by remember { mutableStateOf("") }
+    var showCompareDialog by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -115,6 +124,10 @@ private fun HardwireApp(viewModel: MainViewModel) {
                 onRename = { device ->
                     renameTarget = device
                     renameText = device.name
+                },
+                onCompare = {
+                    showCompareDialog = true
+                    scope.launch { drawerState.close() }
                 }
             )
         }
@@ -143,7 +156,17 @@ private fun HardwireApp(viewModel: MainViewModel) {
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (showHub) {
+                if (showComparison && comparisonDev1 != null && comparisonDev2 != null &&
+                    comparisonInfo1 != null && comparisonInfo2 != null
+                ) {
+                    ComparisonScreen(
+                        device1 = comparisonDev1!!,
+                        info1 = comparisonInfo1!!,
+                        device2 = comparisonDev2!!,
+                        info2 = comparisonInfo2!!,
+                        onBack = { viewModel.exitComparison() }
+                    )
+                } else if (showHub) {
                     val usbDeviceName = devices.find { it.id == "usb" }?.name ?: ""
                     ConnectionScreen(
                         connectionState = usbState,
@@ -201,6 +224,84 @@ private fun HardwireApp(viewModel: MainViewModel) {
             },
             dismissButton = {
                 TextButton(onClick = { renameTarget = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showCompareDialog) {
+        var selected1 by remember { mutableStateOf<String?>(null) }
+        var selected2 by remember { mutableStateOf<String?>(null) }
+        AlertDialog(
+            onDismissRequest = { showCompareDialog = false },
+            title = { Text("Seleccionar dispositivos") },
+            text = {
+                Column {
+                    Text("Dispositivo 1:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    devices.forEach { device ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    selected1 = if (selected1 == device.id) null else device.id
+                                }
+                                .background(
+                                    if (selected1 == device.id) HardwirePrimary.copy(alpha = 0.15f)
+                                    else Color.Transparent
+                                )
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selected1 == device.id,
+                                onClick = { selected1 = device.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(device.name, fontSize = 14.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Dispositivo 2:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    devices.filter { it.id != selected1 }.forEach { device ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    selected2 = if (selected2 == device.id) null else device.id
+                                }
+                                .background(
+                                    if (selected2 == device.id) HardwirePrimary.copy(alpha = 0.15f)
+                                    else Color.Transparent
+                                )
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selected2 == device.id,
+                                onClick = { selected2 = device.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(device.name, fontSize = 14.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (selected1 != null && selected2 != null) {
+                            viewModel.startComparison(selected1!!, selected2!!)
+                            showCompareDialog = false
+                        }
+                    },
+                    enabled = selected1 != null && selected2 != null
+                ) { Text("Comparar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompareDialog = false }) { Text("Cancelar") }
             }
         )
     }

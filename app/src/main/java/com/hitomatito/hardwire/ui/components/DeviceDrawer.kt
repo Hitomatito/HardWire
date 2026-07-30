@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ fun DeviceDrawerContent(
     onBackToHub: () -> Unit,
     onDisconnect: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onRename: (ManagedDevice) -> Unit
+    onRename: (ManagedDevice) -> Unit,
+    onCompare: () -> Unit = {}
 ) {
     var menuOpenId by remember { mutableStateOf<String?>(null) }
 
@@ -159,6 +161,20 @@ fun DeviceDrawerContent(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+            if (devices.size >= 2) {
+                OutlinedButton(
+                    onClick = onCompare,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Comparar dispositivos", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Button(
                 onClick = onAdd,
                 modifier = Modifier
