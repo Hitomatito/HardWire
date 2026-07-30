@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="hardwire_primary">#FF0D47A1</color>
+    <color name="hardwire_primary_variant">#FF1565C0</color>
+    <color name="hardwire_secondary">#FF00BFA5</color>
+    <color name="hardwire_background">#FF121212</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>
