@@ -213,6 +213,7 @@
 
     <!-- Widget -->
     <string name="widget_description">Muestra el estado del dispositivo conectado</string>
+    <string name="widget_battery_format">Bateria: %s%%</string>
     <string name="use_dynamic_colors">Usar colores del sistema</string>
 
     <!-- Export & Error Handling -->

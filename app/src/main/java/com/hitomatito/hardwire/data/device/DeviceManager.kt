@@ -18,6 +18,7 @@ import com.hitomatito.hardwire.data.model.GeneralInfo
 import com.hitomatito.hardwire.data.model.ManagedDevice
 import com.hitomatito.hardwire.data.model.MemoryInfo
 import com.hitomatito.hardwire.data.model.NetworkInfo
+import com.hitomatito.hardwire.ui.widget.DeviceStatusWidget
 import com.hitomatito.hardwire.data.model.StorageInfo
 import com.hitomatito.hardwire.data.chipset.ChipsetRepository
 import com.hitomatito.hardwire.data.history.HistoryRepository
@@ -149,6 +150,22 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     private fun setIp(id: String, ip: String) {
         _ips.value = _ips.value.toMutableMap().apply { put(id, ip) }
+    }
+
+    private fun updateWidgetFor(id: String) {
+        val info = _infos.value[id]
+        val device = devices.value.find { it.id == id }
+        val state = _states.value[id]
+        val deviceName = device?.name ?: return
+        val batteryLevel = info?.battery?.levelPercent?.toInt()?.toString() ?: "--"
+        val connectionStatus = when (state) {
+            is ConnectionState.Connected -> context.getString(com.hitomatito.hardwire.R.string.status_connected)
+            is ConnectionState.Connecting -> context.getString(com.hitomatito.hardwire.R.string.connecting)
+            is ConnectionState.GatheringData -> context.getString(com.hitomatito.hardwire.R.string.status_gathering_data)
+            is ConnectionState.Error -> context.getString(com.hitomatito.hardwire.R.string.status_error)
+            else -> context.getString(com.hitomatito.hardwire.R.string.disconnect)
+        }
+        DeviceStatusWidget.updateWidget(context, deviceName, batteryLevel, connectionStatus)
     }
 
     fun findUsbDevice(): UsbDevice? {
@@ -293,6 +310,7 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             setActive(id)
             val info = gatherInfo(id, null)
             setInfo(id, info)
+            updateWidgetFor(id)
             if (isInfoValid(info)) {
                 saveInfo(id, info)
                 historyRepository?.saveSnapshot(id, info)
@@ -340,6 +358,7 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             usbManager.disconnect()
         }
         setState(id, ConnectionState.Disconnected)
+        updateWidgetFor(id)
         updateOnlineStatusFor(id)
     }
 
@@ -362,6 +381,13 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         if (_activeId.value == id) {
             _activeId.value = _devices.value.firstOrNull()?.id
         }
+        // Update widget to show no device
+        DeviceStatusWidget.updateWidget(
+            context,
+            context.getString(com.hitomatito.hardwire.R.string.drawer_no_devices),
+            "--",
+            context.getString(com.hitomatito.hardwire.R.string.disconnect)
+        )
     }
 
     fun renameDevice(id: String, name: String, persist: Boolean = true) {
@@ -410,6 +436,7 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
                 val info = gatherInfo(id, oldInfo)
                 if (isInfoValid(info)) {
                     setInfo(id, info)
+                    updateWidgetFor(id)
                     saveInfo(id, info)
                     historyRepository?.saveSnapshot(id, info)
                     _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
