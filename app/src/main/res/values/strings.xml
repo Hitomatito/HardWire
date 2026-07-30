@@ -218,6 +218,12 @@
     <string name="widget_battery_format">Bateria: %s%%</string>
     <string name="use_dynamic_colors">Usar colores del sistema</string>
 
+    <!-- Theme -->
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_label">Tema</string>
+
     <!-- Export & Error Handling -->
     <string name="export_report">Exportar informe</string>
     <string name="share_report">Compartir</string>

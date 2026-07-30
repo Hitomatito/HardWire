@@ -51,8 +51,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            HardwireTheme {
-                HardwireApp(viewModel)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var themeMode by remember { mutableStateOf(com.hitomatito.hardwire.ui.theme.ThemePreferences.getThemeMode(context)) }
+            val darkTheme = when (themeMode) {
+                com.hitomatito.hardwire.ui.theme.ThemeMode.LIGHT -> false
+                com.hitomatito.hardwire.ui.theme.ThemeMode.DARK -> true
+                com.hitomatito.hardwire.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            HardwireTheme(darkTheme = darkTheme) {
+                HardwireApp(
+                    viewModel = viewModel,
+                    themeMode = themeMode,
+                    onThemeModeChange = { mode ->
+                        themeMode = mode
+                        com.hitomatito.hardwire.ui.theme.ThemePreferences.setThemeMode(context, mode)
+                    }
+                )
             }
         }
     }
@@ -60,7 +75,11 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HardwireApp(viewModel: MainViewModel) {
+private fun HardwireApp(
+    viewModel: MainViewModel,
+    themeMode: com.hitomatito.hardwire.ui.theme.ThemeMode = com.hitomatito.hardwire.ui.theme.ThemeMode.SYSTEM,
+    onThemeModeChange: (com.hitomatito.hardwire.ui.theme.ThemeMode) -> Unit = {}
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var permissionsGranted by remember { mutableStateOf(allPermissionsGranted(context)) }
 
@@ -111,6 +130,8 @@ private fun HardwireApp(viewModel: MainViewModel) {
                 activeId = activeId,
                 stateMap = stateMap,
                 online = onlineStatus,
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
                 onSelect = { id ->
                     viewModel.selectDevice(id)
                     scope.launch { drawerState.close() }

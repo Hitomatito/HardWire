@@ -29,6 +29,7 @@ import com.hitomatito.hardwire.ui.theme.StatusConnected
 import com.hitomatito.hardwire.ui.theme.StatusConnecting
 import com.hitomatito.hardwire.ui.theme.StatusDisconnected
 import com.hitomatito.hardwire.ui.theme.StatusOnline
+import com.hitomatito.hardwire.ui.theme.ThemeMode
 
 @Composable
 fun DeviceDrawerContent(
@@ -36,6 +37,8 @@ fun DeviceDrawerContent(
     activeId: String?,
     stateMap: Map<String, ConnectionState>,
     online: Map<String, Boolean> = emptyMap(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
     onSelect: (String) -> Unit,
     onAdd: () -> Unit,
     onBackToHub: () -> Unit,
@@ -187,6 +190,63 @@ fun DeviceDrawerContent(
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.add_device), fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Theme toggle
+            var themeMenuOpen by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { themeMenuOpen = true }
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.DarkMode,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.theme_label),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        when (themeMode) {
+                            ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+                            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                            ThemeMode.DARK -> stringResource(R.string.theme_dark)
+                        },
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = themeMenuOpen,
+                    onDismissRequest = { themeMenuOpen = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.theme_system)) },
+                        onClick = { onThemeModeChange(ThemeMode.SYSTEM); themeMenuOpen = false },
+                        leadingIcon = { if (themeMode == ThemeMode.SYSTEM) Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp)) else Spacer(modifier = Modifier.size(18.dp)) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.theme_light)) },
+                        onClick = { onThemeModeChange(ThemeMode.LIGHT); themeMenuOpen = false },
+                        leadingIcon = { if (themeMode == ThemeMode.LIGHT) Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp)) else Spacer(modifier = Modifier.size(18.dp)) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.theme_dark)) },
+                        onClick = { onThemeModeChange(ThemeMode.DARK); themeMenuOpen = false },
+                        leadingIcon = { if (themeMode == ThemeMode.DARK) Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp)) else Spacer(modifier = Modifier.size(18.dp)) }
+                    )
+                }
             }
         }
     }
