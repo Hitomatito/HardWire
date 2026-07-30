@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.R
+import com.hitomatito.hardwire.data.export.DeviceReportExporter
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.data.model.DeviceType
 import com.hitomatito.hardwire.data.model.ManagedDevice
@@ -192,6 +193,8 @@ private fun HardwireApp(viewModel: MainViewModel) {
                         is ConnectionState.Disconnected -> "Dispositivo desconectado"
                         else -> null
                     }
+                    val currentDevice = devices.find { it.id == activeId }
+                    val currentInfo = activeInfo
                     InfoScreen(
                         deviceInfo = activeInfo ?: com.hitomatito.hardwire.data.model.DeviceInfo(),
                         isLoading = isLoading,
@@ -201,6 +204,15 @@ private fun HardwireApp(viewModel: MainViewModel) {
                         lastUpdated = activeUpdatedAt,
                         onRefresh = { viewModel.refresh() },
                         onSwitchToWifi = { viewModel.switchToWifi() },
+                        onShare = if (currentDevice != null && currentInfo != null) {
+                            { DeviceReportExporter.shareReport(context, currentDevice, currentInfo) }
+                        } else null,
+                        onCopyReport = if (currentDevice != null && currentInfo != null) {
+                            {
+                                DeviceReportExporter.copyToClipboard(context, currentDevice, currentInfo)
+                                android.widget.Toast.makeText(context, context.getString(R.string.report_copied), android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else null,
                         errorMessage = errorMessage,
                         onMenuClick = openDrawer
                     )

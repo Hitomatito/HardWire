@@ -72,6 +72,8 @@ fun InfoScreen(
     lastUpdated: Long = 0L,
     onRefresh: () -> Unit,
     onSwitchToWifi: () -> Unit,
+    onShare: (() -> Unit)? = null,
+    onCopyReport: (() -> Unit)? = null,
     errorMessage: String? = null,
     onMenuClick: (() -> Unit)? = null
 ) {
@@ -113,6 +115,16 @@ fun InfoScreen(
                 statusText = statusText,
                 statusColor = AccentGreen,
                 actions = {
+                    if (onShare != null) {
+                        IconButton(onClick = onShare) {
+                            Icon(Icons.Filled.Share, stringResource(R.string.share_report))
+                        }
+                    }
+                    if (onCopyReport != null) {
+                        IconButton(onClick = onCopyReport) {
+                            Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy_to_clipboard))
+                        }
+                    }
                     if (connectionMode == "USB") {
                         IconButton(onClick = onSwitchToWifi) {
                             Icon(Icons.Filled.Wifi, stringResource(R.string.switch_to_wifi))
