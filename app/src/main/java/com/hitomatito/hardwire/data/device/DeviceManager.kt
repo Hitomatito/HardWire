@@ -255,6 +255,12 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     suspend fun connectDevice(id: String) {
         val device = devices.value.find { it.id == id } ?: return
+        // Guard: skip if already connected and healthy
+        val existing = connections[id]
+        if (existing != null && existing.isHealthy) {
+            Log.d("HW:DevMgr", "[connectDevice] SKIP id=$id ya conectado y saludable")
+            return
+        }
         Log.d("HW:DevMgr", "[connectDevice] ENTRADA id=$id type=${device.type} host=${device.host}:${device.port}")
         setState(id, ConnectionState.Connecting)
         try {

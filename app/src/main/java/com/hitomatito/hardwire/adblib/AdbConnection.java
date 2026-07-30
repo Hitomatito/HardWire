@@ -36,9 +36,11 @@ public class AdbConnection implements Closeable {
     private Thread createConnectionThread() {
         final AdbConnection conn = this;
         return new Thread(() -> {
+            int consecutiveIoErrors = 0;
             while (!connectionThread.isInterrupted()) {
                 try {
                     AdbMessage msg = AdbMessage.parseAdbMessage(channel);
+                    consecutiveIoErrors = 0; // reset on success
                     if (!AdbProtocol.validateMessage(msg))
                         continue;
 
@@ -104,9 +106,15 @@ public class AdbConnection implements Closeable {
                     Log.e(TAG, "connectionThread EOF: conexion cerrada por el remote");
                     break;
                 } catch (java.io.IOException e) {
-                    Log.e(TAG, "connectionThread IO error: " + e.getMessage());
+                    consecutiveIoErrors++;
+                    Log.e(TAG, "connectionThread IO error (" + consecutiveIoErrors + "): " + e.getMessage());
                     if (e.getMessage() != null && (e.getMessage().contains("closed") || e.getMessage().contains("EOF"))) break;
-                    Log.w(TAG, "connectionThread IO recoverable, continuando...");
+                    if (consecutiveIoErrors >= 5) {
+                        Log.e(TAG, "connectionThread IO fatal: " + consecutiveIoErrors + " errores consecutivos, cerrando conexion");
+                        break;
+                    }
+                    Log.w(TAG, "connectionThread IO recoverable, reintentando...");
+                    try { Thread.sleep(100); } catch (InterruptedException ie) { break; }
                     continue;
                 } catch (Exception e) {
                     Log.w(TAG, "connectionThread excepcion recoverable: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -115,9 +123,11 @@ public class AdbConnection implements Closeable {
             }
 
             synchronized (conn) {
+                conn.connected = false;
                 cleanupStreams();
                 conn.notifyAll();
                 conn.connectAttempted = false;
+                Log.e(TAG, "connectionThread terminado, conexion marcada como closed");
             }
         });
     }

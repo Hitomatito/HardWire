@@ -169,13 +169,26 @@ class UsbAdbManager(private val context: Context) {
     }
 
     suspend fun connect(): AdbConnection = withContext(Dispatchers.IO) {
+        // Re-find ADB device to handle USB re-enumeration (device path may have changed)
+        val freshDevice = findAdbDevice()
+        if (freshDevice != null) {
+            if (freshDevice != pendingDevice) {
+                Log.d("HW:Usb", "[connect] USB re-enumerado: ${pendingDevice?.deviceName} -> ${freshDevice.deviceName}")
+                pendingDevice = freshDevice
+            }
+        }
         val device = pendingDevice ?: throw IllegalStateException("No device selected")
         Log.d("HW:Usb", "[connect] iniciando para ${device.deviceName}")
         val usbInterface = findAdbInterface(device)
             ?: throw IllegalStateException("ADB interface not found")
 
+        if (!usbManager.hasPermission(device)) {
+            Log.w("HW:Usb", "[connect] sin permiso para ${device.deviceName}, solicitando...")
+            throw IllegalStateException("USB permission required")
+        }
+
         val connection = usbManager.openDevice(device)
-            ?: throw IllegalStateException("Cannot open USB device")
+            ?: throw IllegalStateException("Cannot open USB device - device may be busy or disconnected")
         Log.d("HW:Usb", "[connect] openDevice OK")
 
         if (!connection.claimInterface(usbInterface, true)) {
