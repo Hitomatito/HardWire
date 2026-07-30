@@ -6,10 +6,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hitomatito.hardwire.data.device.AddDeviceResult
 import com.hitomatito.hardwire.data.device.DeviceManager
+import com.hitomatito.hardwire.data.history.HistoryRepository
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.data.model.DeviceInfo
 import com.hitomatito.hardwire.data.model.ManagedDevice
 import com.hitomatito.hardwire.di.ServiceLocator
+import com.hitomatito.hardwire.ui.screens.HistorySnapshot
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -160,6 +162,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun exitComparison() {
         Log.d("HW:VM", "[exitComparison] cerrando comparacion")
         _comparisonIds.value = null
+    }
+
+    // History
+    private val _historySnapshots = MutableStateFlow<List<HistorySnapshot>>(emptyList())
+    val historySnapshots: StateFlow<List<HistorySnapshot>> = _historySnapshots.asStateFlow()
+
+    private val _showHistory = MutableStateFlow(false)
+    val showHistory: StateFlow<Boolean> = _showHistory.asStateFlow()
+
+    fun loadHistory(deviceId: String) {
+        viewModelScope.launch {
+            val repo = deviceManager.historyRepository
+            if (repo != null) {
+                val data = repo.getHistory(deviceId, limit = 30)
+                _historySnapshots.value = data.map { (ts, info) -> HistorySnapshot(ts, info) }
+            }
+            _showHistory.value = true
+        }
+    }
+
+    fun exitHistory() {
+        _showHistory.value = false
+        _historySnapshots.value = emptyList()
     }
 
     override fun onCleared() {

@@ -46,7 +46,7 @@ sealed class AddDeviceResult {
     data class AlreadyExists(val device: ManagedDevice) : AddDeviceResult()
 }
 
-class DeviceManager(private val context: Context, private val chipsetRepository: ChipsetRepository? = null, private val historyRepository: HistoryRepository? = null) {
+class DeviceManager(private val context: Context, private val chipsetRepository: ChipsetRepository? = null, val historyRepository: HistoryRepository? = null) {
 
     private val usbManager = UsbAdbManager(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

@@ -35,6 +35,7 @@ import com.hitomatito.hardwire.ui.components.DeviceDrawerContent
 import com.hitomatito.hardwire.ui.components.HardwireTopBar
 import com.hitomatito.hardwire.ui.screens.ComparisonScreen
 import com.hitomatito.hardwire.ui.screens.ConnectionScreen
+import com.hitomatito.hardwire.ui.screens.HistoryScreen
 import com.hitomatito.hardwire.ui.screens.InfoScreen
 import com.hitomatito.hardwire.ui.theme.HardwirePrimary
 import com.hitomatito.hardwire.ui.theme.HardwireTheme
@@ -110,6 +111,8 @@ private fun HardwireApp(
     val comparisonDev2 by viewModel.comparisonDevice2.collectAsState()
     val comparisonInfo1 by viewModel.comparisonInfo1.collectAsState()
     val comparisonInfo2 by viewModel.comparisonInfo2.collectAsState()
+    val showHistory by viewModel.showHistory.collectAsState()
+    val historySnapshots by viewModel.historySnapshots.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openDrawer = {
@@ -183,7 +186,13 @@ private fun HardwireApp(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (showComparison && comparisonDev1 != null && comparisonDev2 != null &&
+                if (showHistory) {
+                    HistoryScreen(
+                        deviceName = devices.find { it.id == activeId }?.name ?: "",
+                        snapshots = historySnapshots,
+                        onBack = { viewModel.exitHistory() }
+                    )
+                } else if (showComparison && comparisonDev1 != null && comparisonDev2 != null &&
                     comparisonInfo1 != null && comparisonInfo2 != null
                 ) {
                     ComparisonScreen(
@@ -233,6 +242,9 @@ private fun HardwireApp(
                                 DeviceReportExporter.copyToClipboard(context, currentDevice, currentInfo)
                                 android.widget.Toast.makeText(context, context.getString(R.string.report_copied), android.widget.Toast.LENGTH_SHORT).show()
                             }
+                        } else null,
+                        onViewHistory = if (currentDevice != null) {
+                            { viewModel.loadHistory(currentDevice.id) }
                         } else null,
                         errorMessage = errorMessage,
                         onMenuClick = openDrawer

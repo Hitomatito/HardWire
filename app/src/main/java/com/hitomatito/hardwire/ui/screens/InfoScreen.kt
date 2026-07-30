@@ -74,6 +74,7 @@ fun InfoScreen(
     onSwitchToWifi: () -> Unit,
     onShare: (() -> Unit)? = null,
     onCopyReport: (() -> Unit)? = null,
+    onViewHistory: (() -> Unit)? = null,
     errorMessage: String? = null,
     onMenuClick: (() -> Unit)? = null
 ) {
@@ -115,6 +116,11 @@ fun InfoScreen(
                 statusText = statusText,
                 statusColor = AccentGreen,
                 actions = {
+                    if (onViewHistory != null) {
+                        IconButton(onClick = onViewHistory) {
+                            Icon(Icons.Filled.History, stringResource(R.string.theme_label))
+                        }
+                    }
                     if (onShare != null) {
                         IconButton(onClick = onShare) {
                             Icon(Icons.Filled.Share, stringResource(R.string.share_report))
