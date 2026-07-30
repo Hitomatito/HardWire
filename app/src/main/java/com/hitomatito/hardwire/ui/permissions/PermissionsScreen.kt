@@ -5,23 +5,31 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.hitomatito.hardwire.ui.theme.AccentAmber
+import com.hitomatito.hardwire.ui.theme.StatusConnected
 
 @Composable
 fun PermissionsScreen(
@@ -53,62 +61,97 @@ fun PermissionsScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Filled.Warning,
-            contentDescription = null,
-            tint = Color(0xFFFFC107),
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        // ── Shield Icon with Gradient Background ──────────────
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .scale(1f)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            AccentAmber.copy(alpha = 0.2f),
+                            AccentAmber.copy(alpha = 0.05f)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Shield,
+                contentDescription = null,
+                tint = AccentAmber,
+                modifier = Modifier.size(44.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
         Text(
             "Permisos requeridos",
-            color = Color.White,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "Hardwire necesita los siguientes permisos para funcionar correctamente.",
-            color = Color.Gray,
-            fontSize = 14.sp
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(32.dp))
 
-        statuses.forEach { (entry, granted) ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (granted) Color(0xFF1B3A1B) else Color(0xFF2A1A1A)
-                ),
-                shape = RoundedCornerShape(10.dp)
+        // ── Permission Cards ──────────────────────────────────
+        statuses.forEachIndexed { index, (entry, granted) ->
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(
+                    tween(300, delayMillis = index * 100, easing = FastOutSlowInEasing)
+                ) + slideInVertically(
+                    tween(300, delayMillis = index * 100, easing = FastOutSlowInEasing)
+                ) { it / 2 }
             ) {
-                Row(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (granted)
+                            MaterialTheme.colorScheme.secondaryContainer
+                        else
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(
-                        imageVector = if (granted) Icons.Filled.CheckCircle else Icons.Filled.Close,
-                        contentDescription = null,
-                        tint = if (granted) Color(0xFF4CAF50) else Color(0xFFE53935),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            entry.label,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (granted) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = if (granted)
+                                MaterialTheme.colorScheme.secondary
+                            else
+                                MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Text(
-                            entry.description,
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                entry.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                entry.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -116,6 +159,7 @@ fun PermissionsScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // ── Grant Button ──────────────────────────────────────
         Button(
             onClick = {
                 val toRequest = statuses.filter { !it.second }.map { it.first.permission }
@@ -126,10 +170,15 @@ fun PermissionsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1))
+            shape = MaterialTheme.shapes.medium,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         ) {
-            Text("Conceder permisos", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(
+                "Conceder permisos",
+                style = MaterialTheme.typography.labelLarge
+            )
         }
 
         if (statuses.any { !it.second }) {
@@ -140,7 +189,11 @@ fun PermissionsScreen(
                 }
                 context.startActivity(intent)
             }) {
-                Text("Abrir configuracion", color = Color.Gray, fontSize = 12.sp)
+                Text(
+                    "Abrir configuracion",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

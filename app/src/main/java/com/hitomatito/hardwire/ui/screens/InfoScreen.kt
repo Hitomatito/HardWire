@@ -36,15 +36,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.data.model.*
 import com.hitomatito.hardwire.ui.components.HardwireTopBar
-import com.hitomatito.hardwire.ui.theme.HardwirePrimary
+import com.hitomatito.hardwire.ui.theme.AccentBlue
+import com.hitomatito.hardwire.ui.theme.AccentGreen
+import com.hitomatito.hardwire.ui.theme.AccentAmber
+import com.hitomatito.hardwire.ui.theme.AccentRed
+import com.hitomatito.hardwire.ui.theme.AccentCyan
 import kotlinx.coroutines.delay
-
-private val CardBg = Color(0xFF1E1E1E)
-private val AccentBlue = HardwirePrimary
-private val AccentGreen = Color(0xFF4CAF50)
-private val AccentAmber = Color(0xFFFFC107)
-private val AccentRed = Color(0xFFF44336)
-private val AccentCyan = Color(0xFF00BCD4)
+import kotlinx.coroutines.delay
 
 private data class Section(val id: String, val title: String, val icon: ImageVector)
 
@@ -147,7 +145,7 @@ fun InfoScreen(
                         Text(
                             if (isSwitchingToWifi) "Conectando via WiFi..."
                             else "Obteniendo informacion del dispositivo...",
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -172,13 +170,13 @@ fun InfoScreen(
                                 "net-ok" !in dismissedNotifs,
                         enter = expandVertically(),
                         exit = fadeOut(animationSpec = tween(300)) + slideOutVertically()
-                    ) {
-                        TemporaryNotification(
-                            timeoutMs = 5000,
-                            dismissKey = netOkCount,
-                            onDismiss = { dismissedNotifs = dismissedNotifs + "net-ok" },
-                            color = Color(0xFF1B3A1B)
                         ) {
+                            TemporaryNotification(
+                                timeoutMs = 5000,
+                                dismissKey = netOkCount,
+                                onDismiss = { dismissedNotifs = dismissedNotifs + "net-ok" },
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -211,13 +209,13 @@ fun InfoScreen(
                         visible = errorMessage != null && "error" in shownNotifs && "error" !in dismissedNotifs,
                         enter = expandVertically(),
                         exit = fadeOut(animationSpec = tween(300)) + slideOutVertically()
-                    ) {
-                        TemporaryNotification(
-                            timeoutMs = 5000,
-                            dismissKey = errorCount,
-                            onDismiss = { dismissedNotifs = dismissedNotifs + "error" },
-                            color = Color(0xFF3A1B1B)
                         ) {
+                            TemporaryNotification(
+                                timeoutMs = 5000,
+                                dismissKey = errorCount,
+                                onDismiss = { dismissedNotifs = dismissedNotifs + "error" },
+                                color = MaterialTheme.colorScheme.errorContainer
+                            ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -275,8 +273,8 @@ fun InfoScreen(
                                                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text(sensor.name, color = Color.White, fontSize = 13.sp)
-                                                Text("${sensor.vendor}", color = Color.Gray, fontSize = 11.sp)
+                                                Text(sensor.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                                                Text("${sensor.vendor}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                                             }
                                         }
                                         if (deviceInfo.sensors.size > 10) {
@@ -286,7 +284,7 @@ fun InfoScreen(
                                             )
                                         }
                                     } else {
-                                        Text("Sin datos", color = Color.Gray, fontSize = 13.sp)
+                                        Text("Sin datos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                                     }
                                 }
                                 "network" -> NetworkCard(deviceInfo.network)
@@ -306,7 +304,7 @@ fun TemporaryNotification(
     timeoutMs: Long = 5000,
     dismissKey: Int = 0,
     onDismiss: () -> Unit,
-    color: Color = CardBg,
+    color: Color = MaterialTheme.colorScheme.surfaceContainerLow,
     content: @Composable ColumnScope.() -> Unit
 ) {
     LaunchedEffect(dismissKey) {
@@ -322,7 +320,7 @@ fun TemporaryNotification(
 
 @Composable
 fun OfflineBanner(lastUpdated: Long) {
-    CardContainer(color = Color(0xFF2A2418)) {
+    CardContainer(color = MaterialTheme.colorScheme.tertiaryContainer) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -330,20 +328,20 @@ fun OfflineBanner(lastUpdated: Long) {
             Icon(
                 Icons.Filled.CloudOff,
                 contentDescription = null,
-                tint = Color(0xFFFFB300),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
                     "Datos guardados (sin conexion)",
-                    color = Color(0xFFFFB300),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "Informacion obtenida localmente. Actualizado ${formatRelativeTime(lastUpdated)}.",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
             }
@@ -378,8 +376,8 @@ fun CollapsibleSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = MaterialTheme.shapes.large
     ) {
         Column {
             Row(
@@ -427,7 +425,7 @@ fun UsageBar(percent: Float, color: Color = AccentBlue) {
         Text("${String.format(java.util.Locale.US, "%.1f", percent)}%", color = Color.Gray, fontSize = 11.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Box(
-            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF333333))
+            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier
@@ -447,8 +445,8 @@ fun InfoRow(label: String, value: String) {
             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.weight(0.4f))
-            Text(value, color = Color.White, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(0.6f))
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.weight(0.4f))
+            Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(0.6f))
         }
     }
 }
@@ -461,11 +459,11 @@ fun CopyableInfoRow(label: String, value: String, context: Context) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.weight(0.4f))
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.weight(0.4f))
             Row(modifier = Modifier.weight(0.6f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     value,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.weight(1f)
@@ -491,11 +489,11 @@ fun CopyableInfoRow(label: String, value: String, context: Context) {
 }
 
 @Composable
-fun CardContainer(color: Color = CardBg, content: @Composable ColumnScope.() -> Unit) {
+fun CardContainer(color: Color = MaterialTheme.colorScheme.surfaceContainerLow, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = color),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         content = content
     )
 }
@@ -505,7 +503,7 @@ fun CpuCard(info: CpuInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             if (info.socName.isNotBlank()) {
-                Text(info.socName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(info.socName, color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (info.socManufacturer.isNotBlank()) InfoRow("Fabricante SoC", info.socManufacturer)
@@ -531,12 +529,12 @@ fun MemoryCard(info: MemoryInfo) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(info.totalRamFormatted, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("RAM Total", color = Color.Gray, fontSize = 12.sp)
+                    Text(info.totalRamFormatted, color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("RAM Total", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(info.availableRamFormatted, color = AccentGreen, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text("Disponible", color = Color.Gray, fontSize = 12.sp)
+                    Text("Disponible", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -567,8 +565,8 @@ fun BatteryCard(info: BatteryInfo) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text("${info.level}%", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("Bateria", color = Color.Gray, fontSize = 12.sp)
+                    Text("${info.level}%", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("Bateria", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(info.status, color = when (info.status) {
@@ -615,11 +613,11 @@ fun StorageCard(info: FileSystemInfo) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(info.mountPoint, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text(info.filesystem, color = Color.Gray, fontSize = 11.sp)
+                    Text(info.mountPoint, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(info.filesystem, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(info.sizeFormatted, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(info.sizeFormatted, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -633,8 +631,8 @@ fun StorageCard(info: FileSystemInfo) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Usado: ${info.usedFormatted}", color = Color.Gray, fontSize = 11.sp)
-                Text("Libre: ${info.availableFormatted}", color = Color.Gray, fontSize = 11.sp)
+                Text("Usado: ${info.usedFormatted}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                Text("Libre: ${info.availableFormatted}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
         }
     }
@@ -674,7 +672,7 @@ fun CameraCard(info: CameraInfo) {
                 append("Camera ${info.id}")
                 if (info.facing.isNotBlank()) append(" - ${info.facing}")
             }
-            Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
             if (info.megapixels.isNotBlank()) InfoRow("Resolucion", info.megapixels)
             if (info.resolution.isNotBlank()) InfoRow("Tamanos", info.resolution)

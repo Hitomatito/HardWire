@@ -23,10 +23,10 @@ import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.data.model.DeviceType
 import com.hitomatito.hardwire.data.model.ManagedDevice
-import com.hitomatito.hardwire.ui.theme.HardwirePrimary
 import com.hitomatito.hardwire.ui.theme.StatusConnected
 import com.hitomatito.hardwire.ui.theme.StatusConnecting
 import com.hitomatito.hardwire.ui.theme.StatusDisconnected
+import com.hitomatito.hardwire.ui.theme.StatusOnline
 
 @Composable
 fun DeviceDrawerContent(
@@ -67,13 +67,13 @@ fun DeviceDrawerContent(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(HardwirePrimary.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Filled.PhoneAndroid,
                         contentDescription = null,
-                        tint = HardwirePrimary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -81,14 +81,13 @@ fun DeviceDrawerContent(
                 Column {
                     Text(
                         "HARDWIRE",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                        color = HardwirePrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 2.sp
                     )
                     Text(
                         "Dispositivos",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -180,8 +179,8 @@ fun DeviceDrawerContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = HardwirePrimary)
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -224,7 +223,7 @@ private fun DeviceDrawerItem(
         icon = {
             Box(
                 modifier = Modifier
-                    .size(10.dp)
+                    .size(14.dp)
                     .clip(CircleShape)
                     .background(dotColor)
             )
@@ -279,8 +278,8 @@ private fun DeviceDrawerItem(
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = HardwirePrimary.copy(alpha = 0.18f),
-            selectedIconColor = HardwirePrimary,
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
             selectedTextColor = MaterialTheme.colorScheme.onSurface,
             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unselectedTextColor = MaterialTheme.colorScheme.onSurface

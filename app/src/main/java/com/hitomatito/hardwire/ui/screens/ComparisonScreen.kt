@@ -1,11 +1,18 @@
 package com.hitomatito.hardwire.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.FilterListOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +38,9 @@ fun ComparisonScreen(
     info2: DeviceInfo,
     onBack: () -> Unit
 ) {
-    val fields = remember(info1, info2) {
+    var showDifferencesOnly by remember { mutableStateOf(false) }
+
+    val allFields = remember(info1, info2) {
         listOf(
             ComparisonField("Fabricante", info1.general.manufacturer, info2.general.manufacturer),
             ComparisonField("Modelo", info1.general.model, info2.general.model),
@@ -59,17 +68,39 @@ fun ComparisonScreen(
         )
     }
 
-    val differencesCount = fields.count { it.isDifferent }
+    val fields = if (showDifferencesOnly) allFields.filter { it.isDifferent } else allFields
+    val differencesCount = allFields.count { it.isDifferent }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Comparar Dispositivos") },
+                title = {
+                    Column {
+                        Text("Comparar Dispositivos", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "$differencesCount diferencias",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                actions = {
+                    IconButton(onClick = { showDifferencesOnly = !showDifferencesOnly }) {
+                        Icon(
+                            if (showDifferencesOnly) Icons.Filled.FilterListOff else Icons.Filled.FilterList,
+                            contentDescription = if (showDifferencesOnly) "Mostrar todo" else "Solo diferencias",
+                            tint = if (showDifferencesOnly) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { padding ->
@@ -78,13 +109,15 @@ fun ComparisonScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // ── Header Card ──────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                shape = MaterialTheme.shapes.large
             ) {
                 Row(
                     modifier = Modifier
@@ -96,47 +129,85 @@ fun ComparisonScreen(
                         Text(
                             text = device1.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             text = "${info1.general.manufacturer} ${info1.general.model}",
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
                     }
-                    Text(
-                        text = "VS",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Text(
+                            text = "VS",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                         Text(
                             text = device2.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             text = "${info2.general.manufacturer} ${info2.general.model}",
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
                     }
                 }
             }
 
+            // ── Filter Chip ─────────────────────────────────────
             if (differencesCount > 0) {
-                Text(
-                    text = "$differencesCount diferencias encontradas",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = showDifferencesOnly,
+                        onClick = { showDifferencesOnly = !showDifferencesOnly },
+                        label = {
+                            Text(
+                                if (showDifferencesOnly) "Mostrar todo" else "Solo diferencias ($differencesCount)",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (showDifferencesOnly) Icons.Filled.FilterListOff else Icons.Filled.FilterList,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
+            // ── Comparison List ──────────────────────────────────
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(fields) { field ->
-                    ComparisonRow(field)
+                itemsIndexed(fields) { index, field ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(
+                            tween(200, delayMillis = index * 30, easing = FastOutSlowInEasing)
+                        ) + slideInVertically(
+                            tween(200, delayMillis = index * 30, easing = FastOutSlowInEasing)
+                        ) { it / 4 }
+                    ) {
+                        ComparisonRow(field)
+                    }
                 }
             }
         }
@@ -149,8 +220,10 @@ private fun ComparisonRow(field: ComparisonField) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (field.isDifferent) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                else MaterialTheme.colorScheme.surface
+                if (field.isDifferent)
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                else
+                    MaterialTheme.colorScheme.surface
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -159,20 +232,30 @@ private fun ComparisonRow(field: ComparisonField) {
             text = field.device1Value.ifBlank { "-" },
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
-            color = if (field.isDifferent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            color = if (field.isDifferent)
+                MaterialTheme.colorScheme.error
+            else
+                MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = field.label,
             modifier = Modifier.weight(1.5f),
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = field.device2Value.ifBlank { "-" },
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
-            color = if (field.isDifferent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            color = if (field.isDifferent)
+                MaterialTheme.colorScheme.error
+            else
+                MaterialTheme.colorScheme.onSurface
         )
     }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    )
 }

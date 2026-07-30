@@ -1,7 +1,10 @@
 package com.hitomatito.hardwire.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,17 +13,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.ui.theme.StatusConnected
 import com.hitomatito.hardwire.ui.theme.StatusConnecting
@@ -89,15 +93,27 @@ fun ConnectionScreen(
         else -> null
     }
 
+    // ── Animations ─────────────────────────────────────────────
     val infinite = rememberInfiniteTransition(label = "spin")
     val iconRotation by infinite.animateFloat(
         initialValue = 0f,
         targetValue = if (isBusy) 360f else 0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "iconRotation"
+    )
+
+    // Pulse animation for status indicator when busy
+    val pulseScale by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isBusy) 1.15f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
     )
 
     val scrollState = rememberScrollState()
@@ -111,46 +127,56 @@ fun ConnectionScreen(
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
+        // ── Brand Header ─────────────────────────────────────────
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(80.dp)
+                .scale(pulseScale)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Filled.PhoneAndroid,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(44.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "HARDWIRE",
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 4.sp
+            letterSpacing = MaterialTheme.typography.headlineMedium.letterSpacing
         )
 
         Text(
             text = "Inspector de hardware via ADB",
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
+        // ── Status Card ──────────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            shape = MaterialTheme.shapes.large
         ) {
             Row(
                 modifier = Modifier
@@ -162,7 +188,7 @@ fun ConnectionScreen(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(statusColor.copy(alpha = 0.15f)),
+                        .background(statusColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -178,15 +204,14 @@ fun ConnectionScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         statusTitle,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     if (!statusSubtitle.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             statusSubtitle,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Start
                         )
@@ -195,182 +220,224 @@ fun ConnectionScreen(
             }
         }
 
-        if (isBusy) {
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = statusColor,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+        // ── Progress Bar ─────────────────────────────────────────
+        AnimatedVisibility(
+            visible = isBusy,
+            enter = fadeIn() + slideInVertically()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = statusColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp)
+        // ── Connection Card ──────────────────────────────────────
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(tween(300)) + slideInVertically(tween(300))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Conectar dispositivo",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onConnectClick,
-                    enabled = !isBusy && !isConnected,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Filled.Usb, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        when {
-                            isConnected -> "Conectado"
-                            isBusy -> "Conectando..."
-                            else -> "Conectar por USB"
-                        },
-                        fontWeight = FontWeight.Bold
+                        "Conectar dispositivo",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = onScanClick,
-                    enabled = !isBusy && !isConnected && !isScanning,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Filled.Wifi, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (isScanning) "Escaneando red..." else "Buscar en red (WiFi)",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onConnectClick,
+                        enabled = !isBusy && !isConnected,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Filled.Usb, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            when {
+                                isConnected -> "Conectado"
+                                isBusy -> "Conectando..."
+                                else -> "Conectar por USB"
+                            },
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onScanClick,
+                        enabled = !isBusy && !isConnected && !isScanning,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Filled.Wifi, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (isScanning) "Escaneando red..." else "Buscar en red (WiFi)",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp)
+        // ── Manual IP Card ───────────────────────────────────────
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(tween(400, delayMillis = 100)) + slideInVertically(tween(400, delayMillis = 100))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Agregar por IP",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = manualIp,
-                        onValueChange = { manualIp = it },
-                        placeholder = { Text("IP (ej. 192.168.1.50)") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            cursorColor = MaterialTheme.colorScheme.primary
-                        )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        "Agregar por IP",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val ip = manualIp.trim()
-                            if (ip.isNotBlank()) {
-                                onAddManual(ip)
-                                manualIp = ""
-                            }
-                        },
-                        enabled = manualIp.isNotBlank() && !isBusy && !isScanning,
-                        modifier = Modifier.height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Agregar", fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = manualIp,
+                            onValueChange = { manualIp = it },
+                            placeholder = { Text("IP (ej. 192.168.1.50)") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                cursorColor = MaterialTheme.colorScheme.primary
+                            ),
+                            textStyle = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                val ip = manualIp.trim()
+                                if (ip.isNotBlank()) {
+                                    onAddManual(ip)
+                                    manualIp = ""
+                                }
+                            },
+                            enabled = manualIp.isNotBlank() && !isBusy && !isScanning,
+                            modifier = Modifier.height(52.dp),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Agregar", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
         }
 
-        if (isScanning || scanResults.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        if (isScanning && scanResults.isEmpty())
-                            "Buscando dispositivos ADB..."
-                        else
-                            "Dispositivos encontrados (${scanResults.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    if (scanResults.isEmpty() && isScanning) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    scanResults.forEach { ip ->
-                        Surface(
-                            onClick = { onDeviceClick(ip) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
+        // ── Scan Results ─────────────────────────────────────────
+        AnimatedVisibility(
+            visible = isScanning || scanResults.isNotEmpty(),
+            enter = fadeIn(tween(300)) + slideInVertically(tween(300))
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(
+                            if (isScanning && scanResults.isEmpty())
+                                "Buscando dispositivos ADB..."
+                            else
+                                "Dispositivos encontrados (${scanResults.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (scanResults.isEmpty() && isScanning) {
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        scanResults.forEach { ip ->
+                            Surface(
+                                onClick = { onDeviceClick(ip) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 4.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.surfaceContainer
                             ) {
-                                Icon(
-                                    Icons.Filled.Wifi,
-                                    contentDescription = null,
-                                    tint = StatusConnected,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(ip, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    Text("Puerto 5555 - Toca para conectar", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Wifi,
+                                        contentDescription = null,
+                                        tint = StatusConnected,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            ip,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            "Puerto 5555 - Toca para conectar",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -381,62 +448,67 @@ fun ConnectionScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp)
+        // ── How To Card ──────────────────────────────────────────
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(tween(400, delayMillis = 200)) + slideInVertically(tween(400, delayMillis = 200))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Lightbulb,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Lightbulb,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Como empezar",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val steps = listOf(
+                        "Habilita Depuracion USB en el dispositivo objetivo",
+                        "Conecta por cable USB OTG y acepta la autorizacion ADB",
+                        "Usa Buscar en red para conectar via WiFi sin cable"
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Como empezar",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 14.sp
-                    )
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                val steps = listOf(
-                    "Habilita Depuracion USB en el dispositivo objetivo",
-                    "Conecta por cable USB OTG y acepta la autorizacion ADB",
-                    "Usa Buscar en red para conectar via WiFi sin cable"
-                )
-                steps.forEachIndexed { index, step ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Box(
+                    steps.forEachIndexed { index, step ->
+                        Row(
                             modifier = Modifier
-                                .size(22.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.Top
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "${index + 1}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                "${index + 1}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                step,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            step,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            modifier = Modifier.weight(1f)
-                        )
                     }
                 }
             }
