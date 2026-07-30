@@ -151,6 +151,7 @@
     <string name="disconnect">Desconectar</string>
     <string name="rename">Renombrar</string>
     <string name="delete">Eliminar</string>
+    <string name="compare_devices">Comparar dispositivos</string>
 
     <!-- Top Bar -->
     <string name="menu">Menu</string>
@@ -222,4 +223,26 @@
     <string name="report_copied">Copiado al portapapeles</string>
     <string name="retry">Reintentar</string>
     <string name="error_offline">Dispositivo fuera de linea</string>
+
+    <!-- Comparison Screen -->
+    <string name="compare_title">Comparar Dispositivos</string>
+    <string name="compare_back">Volver</string>
+    <string name="compare_show_all">Mostrar todo</string>
+    <string name="compare_differences">%d diferencias</string>
+    <string name="compare_diff_short">%d dif</string>
+    <string name="compare_equal">Igual</string>
+    <string name="compare_cpu_config">Config CPU</string>
+    <string name="compare_ram_available">RAM Disponible</string>
+    <string name="compare_ram_free">RAM Libre</string>
+    <string name="compare_ram_usage">Uso RAM</string>
+    <string name="compare_battery_level">Nivel</string>
+    <string name="compare_battery_status">Estado</string>
+    <string name="compare_charge">Carga</string>
+    <string name="compare_refresh_rate">Tasa Refresco</string>
+    <string name="compare_display_info">Info Display</string>
+    <string name="compare_firmware">Firmware</string>
+    <string name="compare_build_type">Tipo Build</string>
+    <string name="compare_build_tags">Tags Build</string>
+    <string name="section_hardware">Hardware</string>
+    <string name="compare_network_interfaces">Interfaces Red</string>
 </resources>

@@ -608,6 +608,8 @@ object CommandParser {
 
         for (line in lines) {
             val trimmed = line.trim()
+
+            // Header line: "0x00000001) name | vendor | ver: N | type: ..."
             val match = Regex("^0x[0-9a-f]+\\)\\s+(.+?)\\s+\\|\\s+(\\S+)\\s+\\|\\s+ver:\\s*(\\d+)\\s+\\|\\s+type:\\s+(.+?)\\s*\\|").find(trimmed)
             if (match != null) {
                 val name = match.groupValues[1].trim()
@@ -621,13 +623,33 @@ object CommandParser {
                             name = name,
                             vendor = vendor,
                             version = version,
-                            type = type,
-                            maxRange = "",
-                            resolution = "",
-                            power = ""
+                            type = type
                         )
                     )
                 }
+                continue
+            }
+
+            // Detail lines update the last sensor
+            val last = sensors.lastOrNull() ?: continue
+
+            var updated = last
+            val maxRateMatch = Regex("maxRate=([\\d.]+Hz)").find(trimmed)
+            if (maxRateMatch != null) {
+                updated = updated.copy(maxRate = maxRateMatch.groupValues[1])
+            }
+
+            val fifoMatch = Regex("FIFO \\(max,reserved\\) = \\((\\d+),").find(trimmed)
+            if (fifoMatch != null) {
+                updated = updated.copy(fifoSize = fifoMatch.groupValues[1])
+            }
+
+            if (trimmed.contains("wakeUp") && !trimmed.contains("non-wakeUp")) {
+                updated = updated.copy(wakeUp = true)
+            }
+
+            if (updated !== last) {
+                sensors[sensors.lastIndex] = updated
             }
         }
 

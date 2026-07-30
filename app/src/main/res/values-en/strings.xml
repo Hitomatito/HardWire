@@ -151,6 +151,7 @@
     <string name="disconnect">Disconnect</string>
     <string name="rename">Rename</string>
     <string name="delete">Delete</string>
+    <string name="compare_devices">Compare devices</string>
 
     <!-- Top Bar -->
     <string name="menu">Menu</string>
@@ -222,4 +223,26 @@
     <string name="report_copied">Copied to clipboard</string>
     <string name="retry">Retry</string>
     <string name="error_offline">Device offline</string>
+
+    <!-- Comparison Screen -->
+    <string name="compare_title">Compare Devices</string>
+    <string name="compare_back">Back</string>
+    <string name="compare_show_all">Show all</string>
+    <string name="compare_differences">%d differences</string>
+    <string name="compare_diff_short">%d diff</string>
+    <string name="compare_equal">Equal</string>
+    <string name="compare_cpu_config">CPU Config</string>
+    <string name="compare_ram_available">RAM Available</string>
+    <string name="compare_ram_free">RAM Free</string>
+    <string name="compare_ram_usage">RAM Usage</string>
+    <string name="compare_battery_level">Level</string>
+    <string name="compare_battery_status">Status</string>
+    <string name="compare_charge">Charging</string>
+    <string name="compare_refresh_rate">Refresh Rate</string>
+    <string name="compare_display_info">Display Info</string>
+    <string name="compare_firmware">Firmware</string>
+    <string name="compare_build_type">Build Type</string>
+    <string name="compare_build_tags">Build Tags</string>
+    <string name="section_hardware">Hardware</string>
+    <string name="compare_network_interfaces">Network Interfaces</string>
 </resources>

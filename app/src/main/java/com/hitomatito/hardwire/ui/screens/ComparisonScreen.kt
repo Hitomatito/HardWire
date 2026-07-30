@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.*
 import com.hitomatito.hardwire.ui.theme.*
 
@@ -79,9 +81,7 @@ fun ComparisonScreen(
     var selectedSection by remember { mutableIntStateOf(0) }
     var showDifferencesOnly by remember { mutableStateOf(false) }
 
-    val sections = remember(info1, info2) {
-        buildSections(info1, info2)
-    }
+    val sections = buildSections(info1, info2)
 
     val totalDifferences = sections.flatMap { it.fields }.count { it.isDifferent }
     val totalFields = sections.flatMap { it.fields }.size
@@ -96,11 +96,11 @@ fun ComparisonScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Comparar Dispositivos", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.compare_title), style = MaterialTheme.typography.titleMedium)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.compare_back))
                     }
                 },
                 actions = {
@@ -163,7 +163,7 @@ fun ComparisonScreen(
                             onClick = { showDifferencesOnly = !showDifferencesOnly },
                             label = {
                                 Text(
-                                    if (showDifferencesOnly) "Mostrar todo" else "$totalDifferences diferencias",
+                                    if (showDifferencesOnly) stringResource(R.string.compare_show_all) else stringResource(R.string.compare_differences, totalDifferences),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             },
@@ -257,7 +257,7 @@ private fun DeviceComparisonHeader(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "$totalDifferences dif",
+                text = stringResource(R.string.compare_diff_short, totalDifferences),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -529,7 +529,7 @@ private fun ComparisonSectionHeader(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Igual",
+                            text = stringResource(R.string.compare_equal),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -640,7 +640,7 @@ private fun ComparisonFieldRow(
                 } else {
                     Icon(
                         Icons.Filled.Check,
-                        contentDescription = "Igual",
+                        contentDescription = stringResource(R.string.compare_equal),
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                         modifier = Modifier.size(16.dp)
                     )
@@ -754,133 +754,134 @@ private fun ComparisonField.device2Wins(): Boolean? = when {
 
 // ── Build Sections ──────────────────────────────────────────
 
+@Composable
 private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<ComparisonSection> = listOf(
     // ── General ────────────────────────────────────────────
     ComparisonSection(
-        title = "General",
+        title = stringResource(R.string.section_general),
         icon = Icons.Filled.Info,
         fields = listOf(
-            ComparisonField("Fabricante", info1.general.manufacturer, info2.general.manufacturer),
-            ComparisonField("Modelo", info1.general.model, info2.general.model),
-            ComparisonField("Nombre Comercial", info1.general.marketName, info2.general.marketName),
-            ComparisonField("Dispositivo", info1.general.device, info2.general.device),
-            ComparisonField("Serial", info1.general.serialNumber, info2.general.serialNumber),
+            ComparisonField(stringResource(R.string.label_manufacturer), info1.general.manufacturer, info2.general.manufacturer),
+            ComparisonField(stringResource(R.string.label_model), info1.general.model, info2.general.model),
+            ComparisonField(stringResource(R.string.label_market_name), info1.general.marketName, info2.general.marketName),
+            ComparisonField(stringResource(R.string.label_device), info1.general.device, info2.general.device),
+            ComparisonField(stringResource(R.string.label_serial), info1.general.serialNumber, info2.general.serialNumber),
         )
     ),
 
     // ── CPU / SoC ──────────────────────────────────────────
     ComparisonSection(
-        title = "Procesador",
+        title = stringResource(R.string.section_cpu),
         icon = Icons.Filled.Memory,
         fields = listOf(
             ComparisonField("SoC", info1.cpu.socName, info2.cpu.socName),
-            ComparisonField("Fabricante SoC", info1.cpu.socManufacturer, info2.cpu.socManufacturer),
-            ComparisonField("Procesador", info1.cpu.processor, info2.cpu.processor),
-            ComparisonField("Nucleos", info1.cpu.processorCount.toString(), info2.cpu.processorCount.toString(),
+            ComparisonField(stringResource(R.string.label_soc_manufacturer), info1.cpu.socManufacturer, info2.cpu.socManufacturer),
+            ComparisonField(stringResource(R.string.label_processor), info1.cpu.processor, info2.cpu.processor),
+            ComparisonField(stringResource(R.string.label_cores), info1.cpu.processorCount.toString(), info2.cpu.processorCount.toString(),
                 device1Wins = if (info1.cpu.processorCount != info2.cpu.processorCount)
                     info1.cpu.processorCount > info2.cpu.processorCount else null
             ),
-            ComparisonField("Arquitectura", info1.cpu.architecture, info2.cpu.architecture),
+            ComparisonField(stringResource(R.string.label_architecture), info1.cpu.architecture, info2.cpu.architecture),
             ComparisonField("CPU ABI", info1.cpu.cpuAbi, info2.cpu.cpuAbi),
-            ComparisonField("GPU", info1.cpu.gpu, info2.cpu.gpu),
-            ComparisonField("BogoMIPS", info1.cpu.bogoMips, info2.cpu.bogoMips),
-            ComparisonField("Config CPU", info1.cpu.cpuConfig, info2.cpu.cpuConfig),
-            ComparisonField("Hardware", info1.cpu.hardware, info2.cpu.hardware),
+            ComparisonField(stringResource(R.string.label_gpu), info1.cpu.gpu, info2.cpu.gpu),
+            ComparisonField(stringResource(R.string.label_bogomips), info1.cpu.bogoMips, info2.cpu.bogoMips),
+            ComparisonField(stringResource(R.string.compare_cpu_config), info1.cpu.cpuConfig, info2.cpu.cpuConfig),
+            ComparisonField(stringResource(R.string.label_hardware), info1.cpu.hardware, info2.cpu.hardware),
         )
     ),
 
     // ── Memory ─────────────────────────────────────────────
     ComparisonSection(
-        title = "Memoria",
+        title = stringResource(R.string.section_memory),
         icon = Icons.Filled.SdStorage,
         fields = listOf(
             ComparisonField(
-                "RAM Total", info1.memory.totalRamFormatted, info2.memory.totalRamFormatted,
+                stringResource(R.string.label_ram_total), info1.memory.totalRamFormatted, info2.memory.totalRamFormatted,
                 showAsBar = true,
                 barValue1 = if (info1.memory.totalRamBytes > 0) 100f else 0f,
                 barValue2 = if (info2.memory.totalRamBytes > 0) 100f else 0f,
                 device1Wins = if (info1.memory.totalRamBytes != info2.memory.totalRamBytes)
                     info1.memory.totalRamBytes > info2.memory.totalRamBytes else null
             ),
-            ComparisonField("RAM Disponible", info1.memory.availableRamFormatted, info2.memory.availableRamFormatted),
-            ComparisonField("RAM Libre", info1.memory.freeRamFormatted, info2.memory.freeRamFormatted),
-            ComparisonField("Cache", info1.memory.cachedFormatted, info2.memory.cachedFormatted),
-            ComparisonField("Uso RAM", "${info1.memory.usagePercent.toInt()}%", "${info2.memory.usagePercent.toInt()}%",
+            ComparisonField(stringResource(R.string.compare_ram_available), info1.memory.availableRamFormatted, info2.memory.availableRamFormatted),
+            ComparisonField(stringResource(R.string.compare_ram_free), info1.memory.freeRamFormatted, info2.memory.freeRamFormatted),
+            ComparisonField(stringResource(R.string.label_cache), info1.memory.cachedFormatted, info2.memory.cachedFormatted),
+            ComparisonField(stringResource(R.string.compare_ram_usage), "${info1.memory.usagePercent.toInt()}%", "${info2.memory.usagePercent.toInt()}%",
                 showAsBar = true,
                 barValue1 = info1.memory.usagePercent,
                 barValue2 = info2.memory.usagePercent,
                 device1Wins = if (info1.memory.usagePercent != info2.memory.usagePercent)
                     info1.memory.usagePercent < info2.memory.usagePercent else null // less usage is better
             ),
-            ComparisonField("Swap Total", info1.memory.totalSwapFormatted, info2.memory.totalSwapFormatted),
-            ComparisonField("Swap Libre", info1.memory.freeSwapFormatted, info2.memory.freeSwapFormatted),
+            ComparisonField(stringResource(R.string.label_swap_total), info1.memory.totalSwapFormatted, info2.memory.totalSwapFormatted),
+            ComparisonField(stringResource(R.string.label_swap_free), info1.memory.freeSwapFormatted, info2.memory.freeSwapFormatted),
         )
     ),
 
     // ── Battery ────────────────────────────────────────────
     ComparisonSection(
-        title = "Bateria",
+        title = stringResource(R.string.section_battery),
         icon = Icons.Filled.BatteryStd,
         fields = listOf(
-            ComparisonField("Nivel", info1.battery.level, info2.battery.level,
+            ComparisonField(stringResource(R.string.compare_battery_level), info1.battery.level, info2.battery.level,
                 showAsBar = true,
                 barValue1 = info1.battery.levelPercent,
                 barValue2 = info2.battery.levelPercent,
                 device1Wins = if (info1.battery.levelPercent != info2.battery.levelPercent)
                     info1.battery.levelPercent > info2.battery.levelPercent else null
             ),
-            ComparisonField("Estado", info1.battery.status, info2.battery.status),
-            ComparisonField("Salud", info1.battery.health, info2.battery.health),
-            ComparisonField("Tecnologia", info1.battery.technology, info2.battery.technology),
-            ComparisonField("Temperatura", info1.battery.temperature, info2.battery.temperature),
-            ComparisonField("Voltaje", info1.battery.voltage, info2.battery.voltage),
-            ComparisonField("Carga", info1.battery.plugged, info2.battery.plugged),
+            ComparisonField(stringResource(R.string.compare_battery_status), info1.battery.status, info2.battery.status),
+            ComparisonField(stringResource(R.string.label_health), info1.battery.health, info2.battery.health),
+            ComparisonField(stringResource(R.string.label_technology), info1.battery.technology, info2.battery.technology),
+            ComparisonField(stringResource(R.string.label_temperature), info1.battery.temperature, info2.battery.temperature),
+            ComparisonField(stringResource(R.string.label_voltage), info1.battery.voltage, info2.battery.voltage),
+            ComparisonField(stringResource(R.string.compare_charge), info1.battery.plugged, info2.battery.plugged),
         )
     ),
 
     // ── Display ────────────────────────────────────────────
     ComparisonSection(
-        title = "Pantalla",
+        title = stringResource(R.string.section_display),
         icon = Icons.Filled.PhoneAndroid,
         fields = listOf(
-            ComparisonField("Resolucion", info1.display.resolution, info2.display.resolution),
-            ComparisonField("Densidad", info1.display.density, info2.display.density),
+            ComparisonField(stringResource(R.string.label_resolution), info1.display.resolution, info2.display.resolution),
+            ComparisonField(stringResource(R.string.label_density), info1.display.density, info2.display.density),
             ComparisonField("DPI", info1.display.densityDpi, info2.display.densityDpi),
-            ComparisonField("Tasa Refresco", info1.display.refreshRate, info2.display.refreshRate),
-            ComparisonField("Info Display", info1.display.displayInfo, info2.display.displayInfo),
+            ComparisonField(stringResource(R.string.compare_refresh_rate), info1.display.refreshRate, info2.display.refreshRate),
+            ComparisonField(stringResource(R.string.compare_display_info), info1.display.displayInfo, info2.display.displayInfo),
         )
     ),
 
     // ── System ─────────────────────────────────────────────
     ComparisonSection(
-        title = "Sistema",
+        title = stringResource(R.string.section_system),
         icon = Icons.Filled.Settings,
         fields = listOf(
             ComparisonField("Android", info1.general.androidVersion, info2.general.androidVersion),
-            ComparisonField("SDK", info1.general.sdkVersion, info2.general.sdkVersion),
-            ComparisonField("Marca", info1.build.brand, info2.build.brand),
+            ComparisonField(stringResource(R.string.label_sdk), info1.general.sdkVersion, info2.general.sdkVersion),
+            ComparisonField(stringResource(R.string.label_brand), info1.build.brand, info2.build.brand),
             ComparisonField("Bootloader", info1.build.bootloader, info2.build.bootloader),
-            ComparisonField("Baseband", info1.build.baseband, info2.build.baseband),
-            ComparisonField("Firmware", info1.build.display, info2.build.display),
-            ComparisonField("Tipo Build", info1.build.type, info2.build.type),
-            ComparisonField("Tags Build", info1.build.tags, info2.build.tags),
+            ComparisonField(stringResource(R.string.label_baseband), info1.build.baseband, info2.build.baseband),
+            ComparisonField(stringResource(R.string.compare_firmware), info1.build.display, info2.build.display),
+            ComparisonField(stringResource(R.string.compare_build_type), info1.build.type, info2.build.type),
+            ComparisonField(stringResource(R.string.compare_build_tags), info1.build.tags, info2.build.tags),
         )
     ),
 
     // ── Hardware ───────────────────────────────────────────
     ComparisonSection(
-        title = "Hardware",
+        title = stringResource(R.string.section_hardware),
         icon = Icons.Filled.Build,
         fields = listOf(
-            ComparisonField("Camaras", info1.cameras.size.toString(), info2.cameras.size.toString(),
+            ComparisonField(stringResource(R.string.section_cameras), info1.cameras.size.toString(), info2.cameras.size.toString(),
                 device1Wins = if (info1.cameras.size != info2.cameras.size)
                     info1.cameras.size > info2.cameras.size else null
             ),
-            ComparisonField("Sensores", info1.sensors.size.toString(), info2.sensors.size.toString(),
+            ComparisonField(stringResource(R.string.section_sensors), info1.sensors.size.toString(), info2.sensors.size.toString(),
                 device1Wins = if (info1.sensors.size != info2.sensors.size)
                     info1.sensors.size > info2.sensors.size else null
             ),
-            ComparisonField("Interfaces Red", info1.network.interfaces.size.toString(), info2.network.interfaces.size.toString()),
+            ComparisonField(stringResource(R.string.compare_network_interfaces), info1.network.interfaces.size.toString(), info2.network.interfaces.size.toString()),
             ComparisonField("WiFi Interface", info1.network.wifiInterface, info2.network.wifiInterface),
         )
     ),

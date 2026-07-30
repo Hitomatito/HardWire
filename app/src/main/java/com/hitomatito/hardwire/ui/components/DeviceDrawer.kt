@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.data.model.DeviceType
 import com.hitomatito.hardwire.data.model.ManagedDevice
@@ -86,7 +88,7 @@ fun DeviceDrawerContent(
                         letterSpacing = 2.sp
                     )
                     Text(
-                        "Dispositivos",
+                        stringResource(R.string.drawer_devices),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -113,12 +115,12 @@ fun DeviceDrawerContent(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Ningun dispositivo",
+                            stringResource(R.string.drawer_no_devices),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp
                         )
                         Text(
-                            "Agrega uno para empezar",
+                            stringResource(R.string.drawer_add_hint),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             fontSize = 11.sp
                         )
@@ -170,7 +172,7 @@ fun DeviceDrawerContent(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Comparar dispositivos", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.compare_devices), fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -184,7 +186,7 @@ fun DeviceDrawerContent(
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Agregar dispositivo", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.add_device), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -250,7 +252,7 @@ private fun DeviceDrawerItem(
                 IconButton(onClick = onToggleMenu) {
                     Icon(
                         Icons.Filled.MoreVert,
-                        contentDescription = "Opciones",
+                        contentDescription = stringResource(R.string.device_options),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -260,17 +262,17 @@ private fun DeviceDrawerItem(
                 ) {
                     DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Filled.LinkOff, contentDescription = null) },
-                        text = { Text("Desconectar") },
+                        text = { Text(stringResource(R.string.disconnect)) },
                         onClick = onDisconnect
                     )
                     DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                        text = { Text("Renombrar") },
+                        text = { Text(stringResource(R.string.rename)) },
                         onClick = onRename
                     )
                     DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                        text = { Text("Eliminar") },
+                        text = { Text(stringResource(R.string.delete)) },
                         onClick = onRemove
                     )
                 }

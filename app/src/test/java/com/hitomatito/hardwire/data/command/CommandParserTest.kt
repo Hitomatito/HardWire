@@ -573,10 +573,48 @@ class CommandParserTest {
         assertEquals("STMicroelectronics", accel.vendor)
         assertEquals("1", accel.version)
         assertEquals("1 (Acceleration-axis)", accel.type)
+        assertEquals("", accel.maxRate)
+        assertEquals("", accel.fifoSize)
+        assertFalse(accel.wakeUp)
 
         val magnetometer = result[5]
         assertEquals("AK09918 Magnetometer", magnetometer.name)
         assertEquals("AKM", magnetometer.vendor)
+        assertEquals("", magnetometer.maxRate)
+        assertEquals("", magnetometer.fifoSize)
+        assertFalse(magnetometer.wakeUp)
+    }
+
+    @Test
+    fun `parseSensorInfo extracts maxRate fifo and wakeUp from detail lines`() {
+        val sensorOutput = """
+            0x00000001) lsm6dso Accelerometer Non-wakeup | STMicro | ver: 142881 | type: android.sensor.accelerometer(1) | perm: n/a | flags: 0x00000980
+            continuous | minRate=1.00Hz | maxRate=415.97Hz | FIFO (max,reserved) = (10000, 3000) events | non-wakeUp |
+            0x00000002) stk_stk3a5x Proximity Sensor Wakeup | sensortek | ver: 200 | type: android.sensor.proximity(8) | perm: n/a | flags: 0x00000003
+            on-change | maxDelay=0us | minDelay=0us | FIFO (max,reserved) = (10000, 300) events | wakeUp |
+        """.trimIndent()
+
+        val result = CommandParser.parseSensorInfo(sensorOutput)
+
+        assertEquals(2, result.size)
+
+        val accel = result[0]
+        assertEquals("lsm6dso Accelerometer Non-wakeup", accel.name)
+        assertEquals("STMicro", accel.vendor)
+        assertEquals("142881", accel.version)
+        assertEquals("android.sensor.accelerometer(1)", accel.type)
+        assertEquals("415.97Hz", accel.maxRate)
+        assertEquals("10000", accel.fifoSize)
+        assertFalse(accel.wakeUp)
+
+        val proximity = result[1]
+        assertEquals("stk_stk3a5x Proximity Sensor Wakeup", proximity.name)
+        assertEquals("sensortek", proximity.vendor)
+        assertEquals("200", proximity.version)
+        assertEquals("android.sensor.proximity(8)", proximity.type)
+        assertEquals("", proximity.maxRate)
+        assertEquals("10000", proximity.fifoSize)
+        assertTrue(proximity.wakeUp)
     }
 
     @Test

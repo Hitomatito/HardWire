@@ -24,7 +24,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.ConnectionState
 import com.hitomatito.hardwire.ui.theme.StatusConnected
 import com.hitomatito.hardwire.ui.theme.StatusConnecting
@@ -75,21 +77,21 @@ fun ConnectionScreen(
     }
 
     val statusTitle = when (connectionState) {
-        is ConnectionState.Connected -> "Conectado"
-        is ConnectionState.Connecting -> "Conectando por USB..."
-        is ConnectionState.ConnectingWifi -> "Conectando por WiFi..."
-        is ConnectionState.GatheringData -> "Leyendo datos del dispositivo..."
-        is ConnectionState.Detecting -> "Detectando dispositivo..."
-        is ConnectionState.RequestingPermission -> "Autoriza la conexion"
-        is ConnectionState.Scanning -> "Buscando en la red..."
-        is ConnectionState.Error -> "No se pudo conectar"
-        else -> "Sin conexion"
+        is ConnectionState.Connected -> stringResource(R.string.status_connected)
+        is ConnectionState.Connecting -> stringResource(R.string.status_connecting_usb)
+        is ConnectionState.ConnectingWifi -> stringResource(R.string.status_connecting_wifi)
+        is ConnectionState.GatheringData -> stringResource(R.string.status_gathering_data)
+        is ConnectionState.Detecting -> stringResource(R.string.status_detecting)
+        is ConnectionState.RequestingPermission -> stringResource(R.string.status_requesting_permission)
+        is ConnectionState.Scanning -> stringResource(R.string.status_scanning)
+        is ConnectionState.Error -> stringResource(R.string.status_error)
+        else -> stringResource(R.string.status_no_connection)
     }
 
     val statusSubtitle = when (connectionState) {
-        is ConnectionState.Connected -> deviceName.ifBlank { "Dispositivo listo" }
+        is ConnectionState.Connected -> deviceName.ifBlank { stringResource(R.string.device_ready) }
         is ConnectionState.Error -> connectionState.message
-        is ConnectionState.RequestingPermission -> "Acepta la invitacion ADB en el telefono"
+        is ConnectionState.RequestingPermission -> stringResource(R.string.accept_adb_invitation)
         else -> null
     }
 
@@ -163,7 +165,7 @@ fun ConnectionScreen(
         )
 
         Text(
-            text = "Inspector de hardware via ADB",
+            text = stringResource(R.string.app_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -254,7 +256,7 @@ fun ConnectionScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        "Conectar dispositivo",
+                        stringResource(R.string.connect_device),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -274,9 +276,9 @@ fun ConnectionScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             when {
-                                isConnected -> "Conectado"
-                                isBusy -> "Conectando..."
-                                else -> "Conectar por USB"
+                                isConnected -> stringResource(R.string.status_connected)
+                                isBusy -> stringResource(R.string.connecting)
+                                else -> stringResource(R.string.connect_usb)
                             },
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -296,7 +298,7 @@ fun ConnectionScreen(
                         Icon(Icons.Filled.Wifi, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            if (isScanning) "Escaneando red..." else "Buscar en red (WiFi)",
+                            if (isScanning) stringResource(R.string.scanning_network) else stringResource(R.string.scan_network),
                             style = MaterialTheme.typography.labelLarge
                         )
                     }
@@ -320,7 +322,7 @@ fun ConnectionScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        "Agregar por IP",
+                        stringResource(R.string.add_by_ip),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -332,7 +334,7 @@ fun ConnectionScreen(
                         OutlinedTextField(
                             value = manualIp,
                             onValueChange = { manualIp = it },
-                            placeholder = { Text("IP (ej. 192.168.1.50)") },
+                            placeholder = { Text(stringResource(R.string.ip_placeholder)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium,
@@ -361,7 +363,7 @@ fun ConnectionScreen(
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Agregar", style = MaterialTheme.typography.labelLarge)
+                            Text(stringResource(R.string.add), style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -385,9 +387,9 @@ fun ConnectionScreen(
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
                             if (isScanning && scanResults.isEmpty())
-                                "Buscando dispositivos ADB..."
+                                stringResource(R.string.searching_adb_devices)
                             else
-                                "Dispositivos encontrados (${scanResults.size})",
+                                stringResource(R.string.devices_found, scanResults.size),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -433,7 +435,7 @@ fun ConnectionScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            "Puerto 5555 - Toca para conectar",
+                                            stringResource(R.string.port_5555_tap),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -470,16 +472,16 @@ fun ConnectionScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Como empezar",
+                            text = stringResource(R.string.how_to_start),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     val steps = listOf(
-                        "Habilita Depuracion USB en el dispositivo objetivo",
-                        "Conecta por cable USB OTG y acepta la autorizacion ADB",
-                        "Usa Buscar en red para conectar via WiFi sin cable"
+                        stringResource(R.string.step_enable_debugging),
+                        stringResource(R.string.step_connect_usb),
+                        stringResource(R.string.step_use_wifi)
                     )
                     steps.forEachIndexed { index, step ->
                         Row(

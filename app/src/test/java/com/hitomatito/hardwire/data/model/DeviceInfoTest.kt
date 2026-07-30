@@ -122,9 +122,9 @@ class DeviceInfoTest {
         assertEquals("", s.type)
         assertEquals("", s.vendor)
         assertEquals("", s.version)
-        assertEquals("", s.maxRange)
-        assertEquals("", s.resolution)
-        assertEquals("", s.power)
+        assertEquals("", s.maxRate)
+        assertEquals("", s.fifoSize)
+        assertEquals(false, s.wakeUp)
     }
 
     @Test
@@ -289,9 +289,9 @@ class DeviceInfoTest {
                     type = "Accelerometer",
                     vendor = "STMicroelectronics",
                     version = "1",
-                    maxRange = "156.90955",
-                    resolution = "0.0047851562",
-                    power = "0.14"
+                    maxRate = "415.97Hz",
+                    fifoSize = "10000",
+                    wakeUp = false
                 )
             ),
             network = NetworkInfo(

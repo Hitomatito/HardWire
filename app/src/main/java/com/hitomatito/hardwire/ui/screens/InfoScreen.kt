@@ -30,10 +30,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.*
 import com.hitomatito.hardwire.ui.components.HardwireTopBar
 import com.hitomatito.hardwire.ui.theme.AccentBlue
@@ -42,21 +44,20 @@ import com.hitomatito.hardwire.ui.theme.AccentAmber
 import com.hitomatito.hardwire.ui.theme.AccentRed
 import com.hitomatito.hardwire.ui.theme.AccentCyan
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.delay
 
-private data class Section(val id: String, val title: String, val icon: ImageVector)
+private data class Section(val id: String, val titleResId: Int, val icon: ImageVector)
 
 private val sections = listOf(
-    Section("general", "General", Icons.Filled.Info),
-    Section("cpu", "Procesador", Icons.Filled.Memory),
-    Section("memory", "Memoria RAM", Icons.Filled.Storage),
-    Section("battery", "Bateria", Icons.Filled.BatteryStd),
-    Section("display", "Pantalla", Icons.Filled.PhoneAndroid),
-    Section("storage", "Almacenamiento", Icons.Filled.SdStorage),
-    Section("cameras", "Camaras", Icons.Filled.CameraAlt),
-    Section("sensors", "Sensores", Icons.Filled.Sensors),
-    Section("network", "Red", Icons.Filled.Wifi),
-    Section("system", "Sistema", Icons.Filled.Code)
+    Section("general", R.string.section_general, Icons.Filled.Info),
+    Section("cpu", R.string.section_cpu, Icons.Filled.Memory),
+    Section("memory", R.string.section_memory, Icons.Filled.Storage),
+    Section("battery", R.string.section_battery, Icons.Filled.BatteryStd),
+    Section("display", R.string.section_display, Icons.Filled.PhoneAndroid),
+    Section("storage", R.string.section_storage, Icons.Filled.SdStorage),
+    Section("cameras", R.string.section_cameras, Icons.Filled.CameraAlt),
+    Section("sensors", R.string.section_sensors, Icons.Filled.Sensors),
+    Section("network", R.string.section_network, Icons.Filled.Wifi),
+    Section("system", R.string.section_system, Icons.Filled.Code)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,7 +115,7 @@ fun InfoScreen(
                 actions = {
                     if (connectionMode == "USB") {
                         IconButton(onClick = onSwitchToWifi) {
-                            Icon(Icons.Filled.Wifi, "Cambiar a WiFi")
+                            Icon(Icons.Filled.Wifi, stringResource(R.string.switch_to_wifi))
                         }
                     }
                 }
@@ -143,8 +144,8 @@ fun InfoScreen(
                         CircularProgressIndicator(color = AccentBlue)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            if (isSwitchingToWifi) "Conectando via WiFi..."
-                            else "Obteniendo informacion del dispositivo...",
+                            if (isSwitchingToWifi) stringResource(R.string.loading_switching_wifi)
+                            else stringResource(R.string.loading_device_info),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -185,16 +186,16 @@ fun InfoScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        if (connectionMode == "WiFi") "Conexion WiFi activa" else "Conexion de red activa",
+                                        if (connectionMode == "WiFi") stringResource(R.string.wifi_active) else stringResource(R.string.network_active),
                                         color = AccentGreen,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         if (connectionMode == "WiFi")
-                                            "Ya puedes desconectar el cable USB."
+                                            stringResource(R.string.disconnect_usb_hint)
                                         else
-                                            "Conectado via red (${deviceIp}:5555).",
+                                            stringResource(R.string.connected_via_network, deviceIp),
                                         color = Color.White,
                                         fontSize = 12.sp
                                     )
@@ -223,7 +224,7 @@ fun InfoScreen(
                                 Icon(Icons.Filled.Error, contentDescription = null, tint = AccentRed, modifier = Modifier.size(24.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Error de conexion", color = AccentRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.connection_error), color = AccentRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                     Text(errorMessage ?: "", color = Color.White, fontSize = 12.sp)
                                 }
                             }
@@ -234,7 +235,7 @@ fun InfoScreen(
                 sections.forEach { section ->
                     item {
                         CollapsibleSection(
-                            title = section.title,
+                            title = stringResource(section.titleResId),
                             icon = section.icon,
                             expanded = section.id in expandedSections,
                             onToggle = {
@@ -263,7 +264,7 @@ fun InfoScreen(
                                             Spacer(modifier = Modifier.height(8.dp))
                                         }
                                     } else {
-                                        Text("Sin datos", color = Color.Gray, fontSize = 13.sp)
+                                        Text(stringResource(R.string.no_data), color = Color.Gray, fontSize = 13.sp)
                                     }
                                 }
                                 "sensors" -> {
@@ -273,18 +274,28 @@ fun InfoScreen(
                                                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text(sensor.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
-                                                Text("${sensor.vendor}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(sensor.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                                                    Text(sensor.vendor, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                                }
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    if (sensor.maxRate.isNotBlank()) {
+                                                        Text(sensor.maxRate, color = AccentGreen, fontSize = 11.sp)
+                                                    }
+                                                    if (sensor.wakeUp) {
+                                                        Text("WakeUp", color = AccentAmber, fontSize = 10.sp)
+                                                    }
+                                                }
                                             }
                                         }
                                         if (deviceInfo.sensors.size > 10) {
                                             Text(
-                                                "+ ${deviceInfo.sensors.size - 10} sensores mas",
+                                                stringResource(R.string.more_sensors, deviceInfo.sensors.size - 10),
                                                 color = AccentBlue, fontSize = 12.sp
                                             )
                                         }
                                     } else {
-                                        Text("Sin datos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                        Text(stringResource(R.string.no_data), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                                     }
                                 }
                                 "network" -> NetworkCard(deviceInfo.network)
@@ -320,6 +331,7 @@ fun TemporaryNotification(
 
 @Composable
 fun OfflineBanner(lastUpdated: Long) {
+    val relativeTime = formatRelativeTime(lastUpdated)
     CardContainer(color = MaterialTheme.colorScheme.tertiaryContainer) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -334,13 +346,13 @@ fun OfflineBanner(lastUpdated: Long) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    "Datos guardados (sin conexion)",
+                    stringResource(R.string.offline_banner_title),
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Informacion obtenida localmente. Actualizado ${formatRelativeTime(lastUpdated)}.",
+                    stringResource(R.string.offline_banner_detail, relativeTime),
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
@@ -349,15 +361,16 @@ fun OfflineBanner(lastUpdated: Long) {
     }
 }
 
+@Composable
 private fun formatRelativeTime(updatedAt: Long): String {
-    if (updatedAt <= 0L) return "fecha desconocida"
+    if (updatedAt <= 0L) return stringResource(R.string.unknown_date)
     val diff = System.currentTimeMillis() - updatedAt
     val min = diff / 60000
     return when {
-        min < 1 -> "hace un momento"
-        min < 60 -> "hace $min min"
-        min < 1440 -> "hace ${min / 60} h"
-        else -> "hace ${min / 1440} d"
+        min < 1 -> stringResource(R.string.time_moment)
+        min < 60 -> stringResource(R.string.time_minutes, min.toInt())
+        min < 1440 -> stringResource(R.string.time_hours, (min / 60).toInt())
+        else -> stringResource(R.string.time_days, (min / 1440).toInt())
     }
 }
 
@@ -398,7 +411,7 @@ fun CollapsibleSection(
                 )
                 Icon(
                     imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Colapsar" else "Expandir",
+                    contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                     tint = Color.Gray,
                     modifier = Modifier
                         .size(22.dp)
@@ -472,13 +485,13 @@ fun CopyableInfoRow(label: String, value: String, context: Context) {
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
-                        Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.copied_label, label), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
                         Icons.Filled.ContentCopy,
-                        contentDescription = "Copiar $label",
+                        contentDescription = stringResource(R.string.copy_label, label),
                         tint = AccentBlue,
                         modifier = Modifier.size(16.dp)
                     )
@@ -506,15 +519,15 @@ fun CpuCard(info: CpuInfo) {
                 Text(info.socName, color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            if (info.socManufacturer.isNotBlank()) InfoRow("Fabricante SoC", info.socManufacturer)
-            if (info.cpuConfig.isNotBlank()) InfoRow("Configuracion", info.cpuConfig)
-            InfoRow("Nucleos", info.processorCount.toString())
-            if (info.gpu.isNotBlank()) InfoRow("GPU", info.gpu)
-            if (info.hardware.isNotBlank()) InfoRow("Hardware", info.hardware)
-            if (info.architecture.isNotBlank()) InfoRow("Arquitectura", info.architecture)
-            else if (info.cpuAbi.isNotBlank()) InfoRow("Arquitectura", info.cpuAbi)
-            if (info.processor.isNotBlank()) InfoRow("Procesador", info.processor)
-            if (info.bogoMips.isNotBlank()) InfoRow("BogoMIPS", info.bogoMips)
+            if (info.socManufacturer.isNotBlank()) InfoRow(stringResource(R.string.label_soc_manufacturer), info.socManufacturer)
+            if (info.cpuConfig.isNotBlank()) InfoRow(stringResource(R.string.label_config), info.cpuConfig)
+            InfoRow(stringResource(R.string.label_cores), info.processorCount.toString())
+            if (info.gpu.isNotBlank()) InfoRow(stringResource(R.string.label_gpu), info.gpu)
+            if (info.hardware.isNotBlank()) InfoRow(stringResource(R.string.label_hardware), info.hardware)
+            if (info.architecture.isNotBlank()) InfoRow(stringResource(R.string.label_architecture), info.architecture)
+            else if (info.cpuAbi.isNotBlank()) InfoRow(stringResource(R.string.label_architecture), info.cpuAbi)
+            if (info.processor.isNotBlank()) InfoRow(stringResource(R.string.label_processor), info.processor)
+            if (info.bogoMips.isNotBlank()) InfoRow(stringResource(R.string.label_bogomips), info.bogoMips)
         }
     }
 }
@@ -530,11 +543,11 @@ fun MemoryCard(info: MemoryInfo) {
             ) {
                 Column {
                     Text(info.totalRamFormatted, color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("RAM Total", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(stringResource(R.string.label_ram_total), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(info.availableRamFormatted, color = AccentGreen, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text("Disponible", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(stringResource(R.string.label_available), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -544,12 +557,12 @@ fun MemoryCard(info: MemoryInfo) {
                 else -> AccentGreen
             })
             Spacer(modifier = Modifier.height(8.dp))
-            InfoRow("Libre (real)", info.freeRamFormatted)
-            InfoRow("Cache", info.cachedFormatted)
+            InfoRow(stringResource(R.string.label_free_real), info.freeRamFormatted)
+            InfoRow(stringResource(R.string.label_cache), info.cachedFormatted)
             if (info.totalSwapBytes > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
-                InfoRow("Swap Total", info.totalSwapFormatted)
-                InfoRow("Swap Libre", info.freeSwapFormatted)
+                InfoRow(stringResource(R.string.label_swap_total), info.totalSwapFormatted)
+                InfoRow(stringResource(R.string.label_swap_free), info.freeSwapFormatted)
             }
         }
     }
@@ -566,7 +579,7 @@ fun BatteryCard(info: BatteryInfo) {
             ) {
                 Column {
                     Text("${info.level}%", color = MaterialTheme.colorScheme.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("Bateria", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text(stringResource(R.string.label_battery), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(info.status, color = when (info.status) {
@@ -583,11 +596,11 @@ fun BatteryCard(info: BatteryInfo) {
                 else -> AccentRed
             })
             Spacer(modifier = Modifier.height(8.dp))
-            InfoRow("Salud", info.health)
-            InfoRow("Tecnologia", info.technology)
-            InfoRow("Temperatura", "${info.temperature}")
-            InfoRow("Voltaje", info.voltage)
-            InfoRow("Cargador", info.plugged)
+            InfoRow(stringResource(R.string.label_health), info.health)
+            InfoRow(stringResource(R.string.label_technology), info.technology)
+            InfoRow(stringResource(R.string.label_temperature), "${info.temperature}")
+            InfoRow(stringResource(R.string.label_voltage), info.voltage)
+            InfoRow(stringResource(R.string.label_plugged), info.plugged)
         }
     }
 }
@@ -596,9 +609,9 @@ fun BatteryCard(info: BatteryInfo) {
 fun DisplayCard(info: DisplayInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
-            if (info.resolution.isNotBlank()) InfoRow("Resolucion", info.resolution)
-            if (info.density.isNotBlank()) InfoRow("Densidad", info.density)
-            if (info.refreshRate.isNotBlank()) InfoRow("Refresh Rate", info.refreshRate)
+            if (info.resolution.isNotBlank()) InfoRow(stringResource(R.string.label_resolution), info.resolution)
+            if (info.density.isNotBlank()) InfoRow(stringResource(R.string.label_density), info.density)
+            if (info.refreshRate.isNotBlank()) InfoRow(stringResource(R.string.label_refresh_rate), info.refreshRate)
         }
     }
 }
@@ -631,8 +644,8 @@ fun StorageCard(info: FileSystemInfo) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Usado: ${info.usedFormatted}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                Text("Libre: ${info.availableFormatted}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                Text(stringResource(R.string.label_used, info.usedFormatted), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                Text(stringResource(R.string.label_free, info.availableFormatted), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
         }
     }
@@ -643,23 +656,23 @@ fun GeneralCard(info: GeneralInfo) {
     val context = LocalContext.current
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow("Fabricante", info.manufacturer)
-            InfoRow("Modelo", info.model)
-            if (info.marketName.isNotBlank()) InfoRow("Nombre comercial", info.marketName)
-            InfoRow("Dispositivo", info.device)
-            if (info.board.isNotBlank()) InfoRow("Board", info.board)
-            if (info.hardware.isNotBlank()) InfoRow("Hardware", info.hardware)
-            InfoRow("Android", info.androidVersion)
-            InfoRow("SDK", info.sdkVersion)
-            InfoRow("Serial", info.serialNumber)
+            InfoRow(stringResource(R.string.label_manufacturer), info.manufacturer)
+            InfoRow(stringResource(R.string.label_model), info.model)
+            if (info.marketName.isNotBlank()) InfoRow(stringResource(R.string.label_market_name), info.marketName)
+            InfoRow(stringResource(R.string.label_device), info.device)
+            if (info.board.isNotBlank()) InfoRow(stringResource(R.string.label_board), info.board)
+            if (info.hardware.isNotBlank()) InfoRow(stringResource(R.string.label_hardware), info.hardware)
+            InfoRow(stringResource(R.string.label_android), info.androidVersion)
+            InfoRow(stringResource(R.string.label_sdk), info.sdkVersion)
+            InfoRow(stringResource(R.string.label_serial), info.serialNumber)
             for ((index, imei) in info.imeis.withIndex()) {
                 if (imei.isNotBlank()) {
-                    val label = if (info.imeis.size > 1) "IMEI ${index + 1}" else "IMEI"
+                    val label = if (info.imeis.size > 1) stringResource(R.string.label_imei_number, index + 1) else stringResource(R.string.label_imei)
                     CopyableInfoRow(label, imei, context)
                 }
             }
-            if (info.phone.isNotBlank()) InfoRow("Baseband", info.phone)
-            InfoRow("Fingerprint", info.fingerprint.take(50))
+            if (info.phone.isNotBlank()) InfoRow(stringResource(R.string.label_baseband), info.phone)
+            InfoRow(stringResource(R.string.label_fingerprint), info.fingerprint.take(50))
         }
     }
 }
@@ -669,15 +682,15 @@ fun CameraCard(info: CameraInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             val title = buildString {
-                append("Camera ${info.id}")
+                append(stringResource(R.string.camera_id, info.id.toString()))
                 if (info.facing.isNotBlank()) append(" - ${info.facing}")
             }
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            if (info.megapixels.isNotBlank()) InfoRow("Resolucion", info.megapixels)
-            if (info.resolution.isNotBlank()) InfoRow("Tamanos", info.resolution)
-            if (info.focalLength.isNotBlank()) InfoRow("Distancia focal", info.focalLength)
-            if (info.flash.isNotBlank()) InfoRow("Flash", info.flash)
+            if (info.megapixels.isNotBlank()) InfoRow(stringResource(R.string.label_resolution), info.megapixels)
+            if (info.resolution.isNotBlank()) InfoRow(stringResource(R.string.label_sizes), info.resolution)
+            if (info.focalLength.isNotBlank()) InfoRow(stringResource(R.string.label_focal_length), info.focalLength)
+            if (info.flash.isNotBlank()) InfoRow(stringResource(R.string.label_flash), info.flash)
         }
     }
 }
@@ -701,21 +714,21 @@ fun NetworkCard(info: NetworkInfo) {
 fun BuildCard(info: BuildInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
-            InfoRow("Brand", info.brand)
-            InfoRow("Modelo", info.model)
-            InfoRow("Board", info.board)
+            InfoRow(stringResource(R.string.label_brand), info.brand)
+            InfoRow(stringResource(R.string.label_model), info.model)
+            InfoRow(stringResource(R.string.label_board), info.board)
             if (info.bootloader.isNotBlank()) InfoRow("Bootloader", info.bootloader)
-            if (info.device.isNotBlank()) InfoRow("Device", info.device)
-            if (info.manufacturer.isNotBlank()) InfoRow("Fabricante", info.manufacturer)
-            if (info.product.isNotBlank()) InfoRow("Producto", info.product)
-            InfoRow("Display", info.display)
-            InfoRow("ID", info.id)
-            InfoRow("Tags", info.tags)
-            InfoRow("Type", info.type)
-            InfoRow("Baseband", info.baseband)
-            if (info.host.isNotBlank()) InfoRow("Host", info.host)
-            if (info.fingerprint.isNotBlank()) InfoRow("Fingerprint", info.fingerprint.take(50))
-            InfoRow("Kernel", info.kernel.take(50))
+            if (info.device.isNotBlank()) InfoRow(stringResource(R.string.label_device), info.device)
+            if (info.manufacturer.isNotBlank()) InfoRow(stringResource(R.string.label_manufacturer), info.manufacturer)
+            if (info.product.isNotBlank()) InfoRow(stringResource(R.string.label_product), info.product)
+            InfoRow(stringResource(R.string.label_display_id), info.display)
+            InfoRow(stringResource(R.string.label_id), info.id)
+            InfoRow(stringResource(R.string.label_tags), info.tags)
+            InfoRow(stringResource(R.string.label_type), info.type)
+            InfoRow(stringResource(R.string.label_baseband), info.baseband)
+            if (info.host.isNotBlank()) InfoRow(stringResource(R.string.label_host), info.host)
+            if (info.fingerprint.isNotBlank()) InfoRow(stringResource(R.string.label_fingerprint), info.fingerprint.take(50))
+            InfoRow(stringResource(R.string.label_kernel), info.kernel.take(50))
         }
     }
 }

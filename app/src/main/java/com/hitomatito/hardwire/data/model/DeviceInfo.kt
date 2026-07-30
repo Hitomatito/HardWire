@@ -121,9 +121,9 @@ data class SensorInfo(
     val type: String = "",
     val vendor: String = "",
     val version: String = "",
-    val maxRange: String = "",
-    val resolution: String = "",
-    val power: String = ""
+    val maxRate: String = "",
+    val fifoSize: String = "",
+    val wakeUp: Boolean = false
 )
 
 @Serializable
