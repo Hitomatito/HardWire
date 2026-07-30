@@ -685,10 +685,23 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         val cpuAbi = bulk.cpuAbi.trim().fallback(old?.cpu?.cpuAbi)
 
         val chipsetInfo = chipsetRepository?.let { repo ->
-            val codename = bulk.socPlatform.trim().ifBlank { bulk.socChipname.trim() }
-            if (codename.isNotBlank()) {
-                try { repo.resolve(codename) } catch (_: Exception) { null }
-            } else null
+            // Try multiple codename sources: platform, socModel, chipname, vendorModel
+            // ro.board.platform (e.g. "lahaina") may not match SOC_NAMES, but
+            // ro.soc.model (e.g. "SM8350") will
+            val candidates = listOf(
+                bulk.socPlatform.trim(),
+                bulk.socModel.trim(),
+                bulk.socChipname.trim(),
+                bulk.socVendorModel.trim()
+            ).filter { it.isNotBlank() }.distinct()
+            if (candidates.isNotEmpty()) {
+                Log.d("HW:DevMgr", "[gatherInfo] chipset candidates: $candidates")
+            }
+            // Stop only when a non-empty chipset is found (ChipsetInfo() has blank chipset = not found)
+            candidates.firstNotNullOfOrNull { codename ->
+                val result = try { repo.resolve(codename) } catch (_: Exception) { null }
+                if (result != null && result.chipset.isNotBlank()) result else null
+            }
         }
 
         val imeis = runCatching { extractImeis(id) }.getOrNull().orEmpty()

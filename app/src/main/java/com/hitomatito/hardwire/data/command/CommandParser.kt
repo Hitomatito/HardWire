@@ -770,7 +770,10 @@ object CommandParser {
         val machine = soc0Machine.trim().lowercase(Locale.US)
 
         // Try database lookup with all available identifiers
+        // Priority: platform -> socModel (SM8350) -> machine -> chipname
+        // socModel is often the best match (e.g. "SM8350" -> "Snapdragon 888")
         val commercialName = lookupSocCommercialName(platform)
+            ?: lookupSocCommercialName(model.lowercase(Locale.US))
             ?: lookupSocCommercialName(machine)
             ?: lookupSocCommercialName(chipname)
 
