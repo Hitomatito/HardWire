@@ -37,8 +37,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.net.InetSocketAddress
-import java.net.Socket
+
 import java.util.concurrent.ConcurrentHashMap
 
 sealed class AddDeviceResult {
@@ -261,6 +260,12 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             Log.d("HW:DevMgr", "[connectDevice] SKIP id=$id ya conectado y saludable")
             return
         }
+        // Close stale connection before creating a new one
+        if (existing != null) {
+            Log.d("HW:DevMgr", "[connectDevice] cerrando conexion anterior id=$id")
+            try { existing.close() } catch (_: Exception) {}
+            connections.remove(id)
+        }
         Log.d("HW:DevMgr", "[connectDevice] ENTRADA id=$id type=${device.type} host=${device.host}:${device.port}")
         setState(id, ConnectionState.Connecting)
         try {
@@ -309,17 +314,6 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             val msg = classifyError(e, device)
             Log.e("HW:DevMgr", "[connectDevice] FALLO id=$id: ${e.message}", e)
             setState(id, ConnectionState.Error(msg))
-        }
-    }
-
-    private fun isReachable(host: String, port: Int): Boolean {
-        return try {
-            Socket().use { s -> s.connect(InetSocketAddress(host, port), 3000) }
-            Log.d("HW:DevMgr", "[isReachable] $host:$port ALCANZABLE")
-            true
-        } catch (e: Exception) {
-            Log.d("HW:DevMgr", "[isReachable] $host:$port NO ALCANZABLE: ${e.message}")
-            false
         }
     }
 
@@ -484,13 +478,29 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
     private suspend fun extractImeis(id: String): List<String> = coroutineScope {
         val results = mutableListOf<String>()
 
+        // WiFi connections are fragile with concurrent commands - detect device type
+        val device = devices.value.find { it.id == id }
+        val isWifi = device?.type == DeviceType.NETWORK
+        if (isWifi) {
+            Log.d("HW:DevMgr", "[extractImeis] modo WiFi: comandos secuenciales")
+        }
+
         Log.d("HW:DevMgr", "[extractImeis] FASE 1: cmd phone get-imei (Android 12+)")
         val hasCmd = executeSafe(id, "which cmd").trim()
         if (hasCmd.isNotBlank() && !hasCmd.contains("not found")) {
-            val v2_0 = async { executeSafe(id, DeviceCommand.IMEI_V2_0.command) }
-            val v2_1 = async { executeSafe(id, DeviceCommand.IMEI_V2_1.command) }
-            val raw0 = v2_0.await()
-            val raw1 = v2_1.await()
+            val raw0: String
+            val raw1: String
+            if (isWifi) {
+                // Serial for WiFi to avoid connection drops
+                raw0 = executeSafe(id, DeviceCommand.IMEI_V2_0.command)
+                raw1 = executeSafe(id, DeviceCommand.IMEI_V2_1.command)
+            } else {
+                // Parallel for USB (fast and reliable)
+                val v2_0 = async { executeSafe(id, DeviceCommand.IMEI_V2_0.command) }
+                val v2_1 = async { executeSafe(id, DeviceCommand.IMEI_V2_1.command) }
+                raw0 = v2_0.await()
+                raw1 = v2_1.await()
+            }
             val imei0 = CommandParser.parseImeiV2(raw0)
             val imei1 = CommandParser.parseImeiV2(raw1)
             if (imei0.isNotBlank()) results.add(imei0)
@@ -504,13 +514,24 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         }
 
         Log.d("HW:DevMgr", "[extractImeis] FASE 1 vacio, FASE 2: service call iphonesubinfo")
-        val legacy = listOf(
-            async { executeSafe(id, DeviceCommand.IMEI.command) },
-            async { executeSafe(id, DeviceCommand.IMEI_SLOT2.command) },
-            async { executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command) },
-            async { executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command) }
-        )
-        val legacyResults = legacy.map { it.await() }
+        val legacy: List<String>
+        if (isWifi) {
+            // Serial for WiFi - these commands are especially fragile over TCP
+            legacy = listOf(
+                executeSafe(id, DeviceCommand.IMEI.command),
+                executeSafe(id, DeviceCommand.IMEI_SLOT2.command),
+                executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command),
+                executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command)
+            )
+        } else {
+            legacy = listOf(
+                async { executeSafe(id, DeviceCommand.IMEI.command) },
+                async { executeSafe(id, DeviceCommand.IMEI_SLOT2.command) },
+                async { executeSafe(id, DeviceCommand.IMEI_SLOT2_A.command) },
+                async { executeSafe(id, DeviceCommand.IMEI_SLOT2_B.command) }
+            ).map { it.await() }
+        }
+        val legacyResults = legacy
             .mapNotNull { raw -> CommandParser.parseImei(raw) }
             .filter { it.isNotBlank() }
         results.addAll(legacyResults)
@@ -611,6 +632,12 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     private suspend fun reconnect(id: String): AdbConnection? {
         val device = devices.value.find { it.id == id } ?: return null
+        // Close old connection before creating a new one
+        val old = connections.remove(id)
+        if (old != null) {
+            Log.d("HW:DevMgr", "[reconnect] cerrando conexion anterior para $id")
+            try { old.close() } catch (_: Exception) {}
+        }
         return try {
             val conn = if (device.type == DeviceType.USB) usbManager.connect()
             else usbManager.openTcpConnection(device.host, device.port)
@@ -815,7 +842,10 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         return if (device.type == DeviceType.USB) {
             connections[id]?.isHealthy == true
         } else {
-            isReachable(device.host, device.port)
+            // WiFi: usar la conexion ADB existente en vez de crear nuevo socket
+            // (adbd solo acepta 1 conexion en port 5555)
+            val conn = connections[id]
+            conn?.isHealthy == true
         }
     }
 
@@ -824,7 +854,9 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         val online = if (device.type == DeviceType.USB) {
             connections[id]?.isHealthy == true
         } else {
-            isReachable(device.host, device.port)
+            // WiFi: usar la conexion ADB existente
+            val conn = connections[id]
+            conn?.isHealthy == true
         }
         _online.value = _online.value.toMutableMap().apply { put(id, online) }
     }
@@ -835,7 +867,8 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             map[device.id] = if (device.type == DeviceType.USB) {
                 connections[device.id]?.isHealthy == true
             } else {
-                isReachable(device.host, device.port)
+                // WiFi: usar la conexion ADB existente (no crear nuevo socket)
+                connections[device.id]?.isHealthy == true
             }
         }
         _online.value = map

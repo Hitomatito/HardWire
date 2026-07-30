@@ -278,7 +278,8 @@ class UsbAdbManager(private val context: Context) {
 
     suspend fun openTcpConnection(host: String, port: Int = 5555): AdbConnection = withContext(Dispatchers.IO) {
         Log.d("HW:Usb", "[openTcp] abriendo socket TCP $host:$port")
-        disconnect()
+        // NO cerrar adbConnection aqui: puede ser una conexion USB activa.
+        // DeviceManager gestiona el lifecycle de las conexiones en su mapa.
         val socket = Socket(host, port)
         socket.soTimeout = 0
         Log.d("HW:Usb", "[openTcp] socket conectado a $host:$port")
