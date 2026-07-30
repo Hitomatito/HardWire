@@ -29,7 +29,7 @@ jobs:
       run: ./gradlew testDebugUnitTest
     
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: success()
       with:
         name: app-debug
