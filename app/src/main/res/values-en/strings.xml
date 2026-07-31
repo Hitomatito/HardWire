@@ -69,6 +69,12 @@
     <string name="time_days">%d d ago</string>
 
     <!-- Info Screen - Common Labels -->
+    <string name="label_status_state">Status</string>
+    <string name="label_storage_section">Storage</string>
+    <string name="label_soc">SoC</string>
+    <string name="label_cpu_abi">CPU ABI</string>
+    <string name="label_dpi">DPI</string>
+    <string name="label_wifi_interface">WiFi Interface</string>
     <string name="no_data">No data</string>
     <string name="more_sensors">+ %d more sensors</string>
     <string name="copy_label">Copy %s</string>
@@ -178,6 +184,12 @@
 
     <!-- Main Activity -->
     <string name="device_disconnected">Device disconnected</string>
+    <string name="select_devices">Select devices</string>
+    <string name="device_number">Device %d:</string>
+    <string name="compare">Compare</string>
+
+    <!-- History Screen -->
+    <string name="no_history">No history</string>
 
     <!-- Permissions Screen -->
     <string name="permissions_required">Permissions required</string>

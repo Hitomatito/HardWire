@@ -167,7 +167,7 @@ private fun HardwireApp(
                 if (showHub) {
                     HardwireTopBar(
                         onMenuClick = openDrawer,
-                        subtitle = "Agregar dispositivo"
+                        subtitle = stringResource(R.string.add_device)
                     )
                 }
             },
@@ -220,7 +220,7 @@ private fun HardwireApp(
                             activeState is ConnectionState.GatheringData
                     val errorMessage = when (activeState) {
                         is ConnectionState.Error -> (activeState as ConnectionState.Error).message
-                        is ConnectionState.Disconnected -> "Dispositivo desconectado"
+                        is ConnectionState.Disconnected -> stringResource(R.string.device_disconnected)
                         else -> null
                     }
                     val currentDevice = devices.find { it.id == activeId }
@@ -300,10 +300,10 @@ private fun HardwireApp(
         var selected2 by remember { mutableStateOf<String?>(null) }
         AlertDialog(
             onDismissRequest = { showCompareDialog = false },
-            title = { Text("Seleccionar dispositivos") },
+            title = { Text(stringResource(R.string.select_devices)) },
             text = {
                 Column {
-                    Text("Dispositivo 1:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(stringResource(R.string.device_number, 1), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     devices.forEach { device ->
                         Row(
@@ -329,7 +329,7 @@ private fun HardwireApp(
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Dispositivo 2:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(stringResource(R.string.device_number, 2), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     devices.filter { it.id != selected1 }.forEach { device ->
                         Row(
@@ -365,10 +365,10 @@ private fun HardwireApp(
                         }
                     },
                     enabled = selected1 != null && selected2 != null
-                ) { Text("Comparar") }
+                ) { Text(stringResource(R.string.compare)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCompareDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showCompareDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

@@ -69,6 +69,12 @@
     <string name="time_days">hace %d d</string>
 
     <!-- Info Screen - Common Labels -->
+    <string name="label_status_state">Estado</string>
+    <string name="label_storage_section">Almacenamiento</string>
+    <string name="label_soc">SoC</string>
+    <string name="label_cpu_abi">CPU ABI</string>
+    <string name="label_dpi">DPI</string>
+    <string name="label_wifi_interface">WiFi Interface</string>
     <string name="no_data">Sin datos</string>
     <string name="more_sensors">+ %d sensores mas</string>
     <string name="copy_label">Copiar %s</string>
@@ -178,6 +184,12 @@
 
     <!-- Main Activity -->
     <string name="device_disconnected">Dispositivo desconectado</string>
+    <string name="select_devices">Seleccionar dispositivos</string>
+    <string name="device_number">Dispositivo %d:</string>
+    <string name="compare">Comparar</string>
+
+    <!-- History Screen -->
+    <string name="no_history">Sin historial</string>
 
     <!-- Permissions Screen -->
     <string name="permissions_required">Permisos requeridos</string>

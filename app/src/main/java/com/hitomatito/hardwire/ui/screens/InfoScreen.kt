@@ -610,8 +610,8 @@ fun BatteryCard(info: BatteryInfo) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(info.status, color = when (info.status) {
-                        "Cargando" -> AccentGreen
-                        "Completo" -> AccentCyan
+                        "Cargando", "Charging" -> AccentGreen
+                        "Completo", "Full" -> AccentCyan
                         else -> Color.White
                     }, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }

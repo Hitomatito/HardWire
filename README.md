@@ -1,12 +1,16 @@
 # Hardwire - Inspector de Hardware Android via ADB
 
-Hardwire es una aplicación Android que permite inspeccionar el hardware del dispositivo mediante una conexión ADB (USB o WiFi). Diseñada para desarrolladores, ingenieros de hardware y entusiastas que necesitan información detallada sobre los componentes del sistema.
+Hardwire es una aplicación Android que permite inspeccionar el hardware del dispositivo mediante una conexión ADB (USB o WiFi), o directamente desde el propio dispositivo sin conexión. Diseñada para desarrolladores, ingenieros de hardware y entusiastas que necesitan información detallada sobre los componentes del sistema.
 
 ## Características
 
-- **Conexión USB y WiFi ADB**: Comunícate con dispositivos locales o remotos a través de ADB
-- **10 categorías de hardware**: Información completa de CPU, GPU, memoria, almacenamiento, batería, pantalla, sensores, red, dispositivos USB y sistema operativo
+- **Dispositivo local**: Inspecciona el hardware del propio dispositivo que ejecuta Hardwire, sin necesidad de ADB
+- **Conexión USB y WiFi ADB**: Comunícate con dispositivos remotos a través de ADB
+- **10 categorías de hardware**: Información completa de CPU, GPU, memoria, almacenamiento, batería, pantalla, cámaras, sensores, red y sistema operativo
 - **Base de datos de SoC**: Base de datos integrada con información detallada de procesadores (Snapdragon, MediaTek, Exynos, etc.)
+- **Comparación**: Compara especificaciones entre dos dispositivos lado a lado
+- **Historial**: Guarda snapshots del hardware para seguimiento temporal
+- **Widget**: Muestra estado del dispositivo en la pantalla de inicio
 - **Multi-dispositivo**: Soporte para conectar y gestionar múltiples dispositivos simultáneamente
 - **Tema oscuro/claro**: Interfaz adaptable a las preferencias del usuario con Material 3
 
@@ -31,7 +35,7 @@ Hardwire utiliza una arquitectura moderna y eficiente:
 | Componente | Versión |
 |-----------|---------|
 | Kotlin | 2.4.0 |
-| Jetpack Compose | Latest |
+| Jetpack Compose | BOM 2024.06.00 |
 | Material 3 | Latest |
 | Gradle | 9.4.1 |
 | Target SDK | 35 |

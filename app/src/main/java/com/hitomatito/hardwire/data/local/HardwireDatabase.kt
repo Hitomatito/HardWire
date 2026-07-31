@@ -31,7 +31,7 @@ abstract class HardwireDatabase : RoomDatabase() {
                     context.applicationContext,
                     HardwireDatabase::class.java,
                     "hardwire_database"
-                ).build()
+                ).fallbackToDestructiveMigration(dropAllTables = true).build()
                 INSTANCE = instance
                 instance
             }

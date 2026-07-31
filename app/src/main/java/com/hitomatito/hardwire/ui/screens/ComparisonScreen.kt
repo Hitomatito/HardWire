@@ -340,19 +340,19 @@ private fun QuickStatsRow(info1: DeviceInfo, info2: DeviceInfo) {
     ) {
         QuickStatChip(
             modifier = Modifier.weight(1f),
-            label = "RAM",
+            label = stringResource(R.string.label_ram_total),
             value1 = info1.memory.totalRamFormatted,
             value2 = info2.memory.totalRamFormatted
         )
         QuickStatChip(
             modifier = Modifier.weight(1f),
-            label = "Android",
+            label = stringResource(R.string.label_android),
             value1 = info1.general.androidVersion,
             value2 = info2.general.androidVersion
         )
         QuickStatChip(
             modifier = Modifier.weight(1f),
-            label = "SoC",
+            label = stringResource(R.string.label_soc),
             value1 = info1.cpu.socName.ifBlank { "?" },
             value2 = info2.cpu.socName.ifBlank { "?" }
         )
@@ -774,7 +774,7 @@ private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<Comparison
         title = stringResource(R.string.section_cpu),
         icon = Icons.Filled.Memory,
         fields = listOf(
-            ComparisonField("SoC", info1.cpu.socName, info2.cpu.socName),
+            ComparisonField(stringResource(R.string.label_soc), info1.cpu.socName, info2.cpu.socName),
             ComparisonField(stringResource(R.string.label_soc_manufacturer), info1.cpu.socManufacturer, info2.cpu.socManufacturer),
             ComparisonField(stringResource(R.string.label_processor), info1.cpu.processor, info2.cpu.processor),
             ComparisonField(stringResource(R.string.label_cores), info1.cpu.processorCount.toString(), info2.cpu.processorCount.toString(),
@@ -782,7 +782,7 @@ private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<Comparison
                     info1.cpu.processorCount > info2.cpu.processorCount else null
             ),
             ComparisonField(stringResource(R.string.label_architecture), info1.cpu.architecture, info2.cpu.architecture),
-            ComparisonField("CPU ABI", info1.cpu.cpuAbi, info2.cpu.cpuAbi),
+            ComparisonField(stringResource(R.string.label_cpu_abi), info1.cpu.cpuAbi, info2.cpu.cpuAbi),
             ComparisonField(stringResource(R.string.label_gpu), info1.cpu.gpu, info2.cpu.gpu),
             ComparisonField(stringResource(R.string.label_bogomips), info1.cpu.bogoMips, info2.cpu.bogoMips),
             ComparisonField(stringResource(R.string.compare_cpu_config), info1.cpu.cpuConfig, info2.cpu.cpuConfig),
@@ -846,7 +846,7 @@ private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<Comparison
         fields = listOf(
             ComparisonField(stringResource(R.string.label_resolution), info1.display.resolution, info2.display.resolution),
             ComparisonField(stringResource(R.string.label_density), info1.display.density, info2.display.density),
-            ComparisonField("DPI", info1.display.densityDpi, info2.display.densityDpi),
+            ComparisonField(stringResource(R.string.label_dpi), info1.display.densityDpi, info2.display.densityDpi),
             ComparisonField(stringResource(R.string.compare_refresh_rate), info1.display.refreshRate, info2.display.refreshRate),
             ComparisonField(stringResource(R.string.compare_display_info), info1.display.displayInfo, info2.display.displayInfo),
         )
@@ -857,7 +857,7 @@ private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<Comparison
         title = stringResource(R.string.section_system),
         icon = Icons.Filled.Settings,
         fields = listOf(
-            ComparisonField("Android", info1.general.androidVersion, info2.general.androidVersion),
+            ComparisonField(stringResource(R.string.label_android), info1.general.androidVersion, info2.general.androidVersion),
             ComparisonField(stringResource(R.string.label_sdk), info1.general.sdkVersion, info2.general.sdkVersion),
             ComparisonField(stringResource(R.string.label_brand), info1.build.brand, info2.build.brand),
             ComparisonField("Bootloader", info1.build.bootloader, info2.build.bootloader),
@@ -882,7 +882,7 @@ private fun buildSections(info1: DeviceInfo, info2: DeviceInfo): List<Comparison
                     info1.sensors.size > info2.sensors.size else null
             ),
             ComparisonField(stringResource(R.string.compare_network_interfaces), info1.network.interfaces.size.toString(), info2.network.interfaces.size.toString()),
-            ComparisonField("WiFi Interface", info1.network.wifiInterface, info2.network.wifiInterface),
+            ComparisonField(stringResource(R.string.label_wifi_interface), info1.network.wifiInterface, info2.network.wifiInterface),
         )
     ),
 )

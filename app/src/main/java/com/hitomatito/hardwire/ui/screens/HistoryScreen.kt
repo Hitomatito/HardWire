@@ -13,9 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.DeviceInfo
 import com.hitomatito.hardwire.ui.theme.*
 import java.text.SimpleDateFormat
@@ -65,7 +67,7 @@ fun HistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Sin historial",
+                        stringResource(R.string.no_history),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
@@ -142,7 +144,7 @@ private fun HistoryCard(snapshot: HistorySnapshot) {
                 // RAM
                 if (info.memory.totalRamFormatted.isNotBlank()) {
                     MetricChip(
-                        label = "RAM",
+                        label = stringResource(R.string.label_ram_total),
                         value = "${info.memory.availableRamFormatted} / ${info.memory.totalRamFormatted}",
                         modifier = Modifier.weight(1f)
                     )
@@ -168,7 +170,7 @@ private fun HistoryCard(snapshot: HistorySnapshot) {
                 // Battery status
                 if (info.battery.status.isNotBlank()) {
                     MetricChip(
-                        label = "Estado",
+                        label = stringResource(R.string.label_status_state),
                         value = info.battery.status,
                         modifier = Modifier.weight(1f)
                     )
@@ -177,7 +179,7 @@ private fun HistoryCard(snapshot: HistorySnapshot) {
                 val mainFs = info.storage.filesystems.firstOrNull { it.mountPoint == "/data" || it.mountPoint == "/" }
                 if (mainFs != null && mainFs.sizeFormatted.isNotBlank()) {
                     MetricChip(
-                        label = "Almacenamiento",
+                        label = stringResource(R.string.label_storage_section),
                         value = "${mainFs.usedFormatted} / ${mainFs.sizeFormatted}",
                         modifier = Modifier.weight(1f)
                     )

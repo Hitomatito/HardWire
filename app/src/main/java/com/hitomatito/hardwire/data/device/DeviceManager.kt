@@ -489,6 +489,10 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
                 val info = collectLocalDeviceInfo(context)
                 setInfo(id, info)
                 updateWidgetFor(id)
+                if (isInfoValid(info)) {
+                    saveInfo(id, info)
+                    historyRepository?.saveSnapshot(id, info)
+                }
                 _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
                 setState(id, ConnectionState.Connected)
                 Log.d("HW:DevMgr", "[refreshDevice] LOCAL info actualizada OK")

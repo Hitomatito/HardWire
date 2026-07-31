@@ -216,6 +216,50 @@ object CommandParser {
     ): GeneralInfo {
         val props = parseGetProp(getpropOutput)
         val socName = resolveSocName(socModel, socManufacturer, socChipname, socPlatform, socVendorModel, soc0Family, soc0Machine)
+
+        // Custom OS detection
+        val customOs = buildString {
+            val brand = (props["ro.product.brand"] ?: "").uppercase(Locale.US)
+            when {
+                brand == "XIAOMI" || brand == "REDMI" || brand == "POCO" -> {
+                    val ver = props["ro.miui.ui.version.name"] ?: ""
+                    if (ver.isNotBlank()) append("MIUI $ver")
+                }
+                brand == "HUAWEI" -> {
+                    val ver = props["ro.build.version.emui"] ?: ""
+                    if (ver.isNotBlank()) append("EMUI $ver")
+                }
+                brand == "HONOR" -> {
+                    val ver = props["ro.config.magic_version"] ?: ""
+                    if (ver.isNotBlank()) append("Magic UI $ver")
+                    else {
+                        val emuiVer = props["ro.build.version.emui"] ?: ""
+                        if (emuiVer.isNotBlank()) append("EMUI $emuiVer")
+                    }
+                }
+                brand == "OPPO" || brand == "REALME" -> {
+                    val ver = props["ro.build.version.opporom"] ?: ""
+                    if (ver.isNotBlank()) append("ColorOS $ver")
+                }
+                brand == "VIVO" -> {
+                    val ver = props["ro.vivo.os.version"] ?: ""
+                    if (ver.isNotBlank()) append("Funtouch $ver")
+                }
+                brand == "ONEPLUS" -> {
+                    val ver = props["ro.build.version.oplus"] ?: ""
+                    if (ver.isNotBlank()) append("OxygenOS $ver")
+                }
+                brand == "SAMSUNG" -> {
+                    val ver = props["ro.build.version.oneui"] ?: ""
+                    if (ver.isNotBlank()) append("One UI $ver")
+                }
+                brand == "MEIZU" -> {
+                    val ver = props["ro.build.display.meizu"] ?: ""
+                    if (ver.isNotBlank()) append("Flyme $ver")
+                }
+            }
+        }.trim()
+
         return GeneralInfo(
             manufacturer = props["ro.product.manufacturer"] ?: "",
             model = props["ro.product.model"] ?: "",
@@ -228,7 +272,10 @@ object CommandParser {
             androidVersion = props["ro.build.version.release"] ?: "",
             sdkVersion = props["ro.build.version.sdk"] ?: "",
             fingerprint = props["ro.build.fingerprint"] ?: "",
-            phone = props["gsm.version.baseband"] ?: ""
+            phone = props["gsm.version.baseband"] ?: "",
+            securityPatch = props["ro.build.version.security_patch"] ?: "",
+            baseOs = props["ro.build.version.base_os"] ?: "",
+            customOs = customOs
         )
     }
 
@@ -721,7 +768,9 @@ object CommandParser {
             tags = props["ro.build.tags"] ?: "",
             type = props["ro.build.type"] ?: "",
             baseband = props["gsm.version.baseband"] ?: "",
-            kernel = hardware
+            kernel = hardware,
+            securityPatch = props["ro.build.version.security_patch"] ?: "",
+            incremental = props["ro.build.version.incremental"] ?: ""
         )
     }
 
