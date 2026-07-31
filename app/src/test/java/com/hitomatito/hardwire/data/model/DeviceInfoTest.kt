@@ -417,11 +417,12 @@ class DeviceInfoTest {
     }
 
     @Test
-    fun `DeviceType enum has exactly USB and NETWORK`() {
+    fun `DeviceType enum has USB, NETWORK and LOCAL`() {
         val values = DeviceType.values()
-        assertEquals(2, values.size)
+        assertEquals(3, values.size)
         assertEquals(DeviceType.USB, values[0])
         assertEquals(DeviceType.NETWORK, values[1])
+        assertEquals(DeviceType.LOCAL, values[2])
     }
 
     @Test

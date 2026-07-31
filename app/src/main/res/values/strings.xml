@@ -212,6 +212,7 @@
 
     <!-- Device Type -->
     <string name="device_type_usb">USB</string>
+    <string name="local_device_subtitle">Este dispositivo</string>
 
     <!-- Widget -->
     <string name="widget_description">Muestra el estado del dispositivo conectado</string>

@@ -18,8 +18,9 @@ import com.hitomatito.hardwire.data.model.GeneralInfo
 import com.hitomatito.hardwire.data.model.ManagedDevice
 import com.hitomatito.hardwire.data.model.MemoryInfo
 import com.hitomatito.hardwire.data.model.NetworkInfo
-import com.hitomatito.hardwire.ui.widget.DeviceStatusWidget
+import com.hitomatito.hardwire.data.model.SensorInfo
 import com.hitomatito.hardwire.data.model.StorageInfo
+import com.hitomatito.hardwire.ui.widget.DeviceStatusWidget
 import com.hitomatito.hardwire.data.chipset.ChipsetRepository
 import com.hitomatito.hardwire.data.history.HistoryRepository
 import com.hitomatito.hardwire.data.network.NetworkScanner
@@ -38,7 +39,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-
 import java.util.concurrent.ConcurrentHashMap
 
 sealed class AddDeviceResult {
@@ -86,6 +86,29 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     init {
         Log.d("HW:DevMgr", "[init] iniciando, dispositivos cargados=${_devices.value.size}: ${_devices.value.map { it.id }}")
+
+        // Add local device if not already present
+        if (_devices.value.none { it.id == LOCAL_ID }) {
+            val localDevice = ManagedDevice(
+                id = LOCAL_ID,
+                name = android.os.Build.MODEL,
+                host = "",
+                port = 0,
+                type = DeviceType.LOCAL
+            )
+            _devices.value = listOf(localDevice) + _devices.value
+        }
+
+        // Collect local device info
+        scope.launch {
+            setState(LOCAL_ID, ConnectionState.GatheringData)
+            val info = collectLocalDeviceInfo(context)
+            setInfo(LOCAL_ID, info)
+            setState(LOCAL_ID, ConnectionState.Connected)
+            _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(LOCAL_ID, System.currentTimeMillis()) }
+            Log.d("HW:DevMgr", "[init] info local recolectada OK")
+        }
+
         usbManager.onPermissionGranted = { scope.launch { connectDevice(USB_ID) } }
         usbManager.onPermissionDenied = {
             Log.w("HW:DevMgr", "[init] permiso USB denegado por broadcast, verificando estado real...")
@@ -363,6 +386,7 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
     }
 
     fun removeDevice(id: String) {
+        if (id == LOCAL_ID) return // Cannot remove local device
         Log.d("HW:DevMgr", "[removeDevice] id=$id")
         disconnectDevice(id)
         _modes.value = _modes.value.minus(id)
@@ -756,7 +780,7 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
     private fun saveDevices(list: List<ManagedDevice>) {
         try {
             val array = JSONArray()
-            list.forEach { d ->
+            list.filter { it.type != DeviceType.LOCAL }.forEach { d ->
                 val obj = JSONObject()
                 obj.put("id", d.id)
                 obj.put("name", d.name)
@@ -894,5 +918,6 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     companion object {
         const val USB_ID = "usb"
+        const val LOCAL_ID = "local"
     }
 }

@@ -142,6 +142,7 @@ fun DeviceDrawerContent(
                             isOnline = online[device.id] == true,
                             isActive = device.id == activeId,
                             menuOpen = menuOpenId == device.id,
+                            isLocal = device.type == DeviceType.LOCAL,
                             onSelect = { onSelect(device.id) },
                             onToggleMenu = {
                                 menuOpenId = if (menuOpenId == device.id) null else device.id
@@ -259,6 +260,7 @@ private fun DeviceDrawerItem(
     isOnline: Boolean,
     isActive: Boolean,
     menuOpen: Boolean,
+    isLocal: Boolean = false,
     onSelect: () -> Unit,
     onToggleMenu: () -> Unit,
     onDismissMenu: () -> Unit,
@@ -277,6 +279,7 @@ private fun DeviceDrawerItem(
     val sub = when (device.type) {
         DeviceType.USB -> "USB"
         DeviceType.NETWORK -> "${device.host}:${device.port}"
+        DeviceType.LOCAL -> stringResource(R.string.local_device_subtitle)
     }
 
     NavigationDrawerItem(
@@ -320,21 +323,25 @@ private fun DeviceDrawerItem(
                     expanded = menuOpen,
                     onDismissRequest = onDismissMenu
                 ) {
-                    DropdownMenuItem(
-                        leadingIcon = { Icon(Icons.Filled.LinkOff, contentDescription = null) },
-                        text = { Text(stringResource(R.string.disconnect)) },
-                        onClick = onDisconnect
-                    )
+                    if (!isLocal) {
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Filled.LinkOff, contentDescription = null) },
+                            text = { Text(stringResource(R.string.disconnect)) },
+                            onClick = onDisconnect
+                        )
+                    }
                     DropdownMenuItem(
                         leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                         text = { Text(stringResource(R.string.rename)) },
                         onClick = onRename
                     )
-                    DropdownMenuItem(
-                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                        text = { Text(stringResource(R.string.delete)) },
-                        onClick = onRemove
-                    )
+                    if (!isLocal) {
+                        DropdownMenuItem(
+                            leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+                            text = { Text(stringResource(R.string.delete)) },
+                            onClick = onRemove
+                        )
+                    }
                 }
             }
         },

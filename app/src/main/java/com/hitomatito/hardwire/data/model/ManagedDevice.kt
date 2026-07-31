@@ -2,7 +2,8 @@ package com.hitomatito.hardwire.data.model
 
 enum class DeviceType {
     USB,
-    NETWORK
+    NETWORK,
+    LOCAL
 }
 
 data class ManagedDevice(
