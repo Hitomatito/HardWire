@@ -60,26 +60,33 @@ suspend fun collectLocalDeviceInfo(context: Context): DeviceInfo = withContext(D
 }
 
 private fun collectGeneralInfo(): GeneralInfo {
-    val serial = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        "unknown"
-    } else {
-        @Suppress("DEPRECATION")
-        Build.SERIAL ?: "unknown"
+    val serial = getSystemProperty("ro.serialno").ifBlank {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) "unknown"
+        else {
+            @Suppress("DEPRECATION")
+            Build.SERIAL ?: "unknown"
+        }
     }
+
+    val marketName = getSystemProperty("ro.product.marketname").ifBlank {
+        getSystemProperty("ro.product.brand") + " " + getSystemProperty("ro.product.model")
+    }
+
+    val phone = Build.getRadioVersion() ?: ""
 
     return GeneralInfo(
         manufacturer = Build.MANUFACTURER ?: "",
         model = Build.MODEL ?: "",
-        marketName = Build.PRODUCT ?: "",
+        marketName = marketName,
         device = Build.DEVICE ?: "",
         board = Build.BOARD ?: "",
         hardware = Build.HARDWARE ?: "",
         serialNumber = serial,
-        imeis = emptyList(),
+        imeis = emptyList(), // Requires READ_PRIVILEGED_PHONE_STATE, not available to normal apps
         androidVersion = Build.VERSION.RELEASE ?: "",
         sdkVersion = Build.VERSION.SDK_INT.toString(),
         fingerprint = Build.FINGERPRINT ?: "",
-        phone = ""
+        phone = phone
     )
 }
 
@@ -219,6 +226,8 @@ private fun collectMemoryInfo(context: Context): MemoryInfo {
 
     var swapTotalBytes = totalBytes
     var swapFreeBytes = 0L
+    var cachedBytes = 0L
+    var buffersBytes = 0L
 
     try {
         val memInfoFile = File("/proc/meminfo")
@@ -233,6 +242,14 @@ private fun collectMemoryInfo(context: Context): MemoryInfo {
                     line.startsWith("SwapFree") -> {
                         val kb = extractKbValue(line)
                         swapFreeBytes = kb * 1024
+                    }
+                    line.startsWith("Cached") -> {
+                        val kb = extractKbValue(line)
+                        cachedBytes = kb * 1024
+                    }
+                    line.startsWith("Buffers") -> {
+                        val kb = extractKbValue(line)
+                        buffersBytes = kb * 1024
                     }
                 }
             }
@@ -249,14 +266,14 @@ private fun collectMemoryInfo(context: Context): MemoryInfo {
         totalRamBytes = totalBytes,
         freeRamBytes = freeBytes,
         availableRamBytes = availableBytes,
-        cachedBytes = 0,
-        buffersBytes = 0,
+        cachedBytes = cachedBytes,
+        buffersBytes = buffersBytes,
         totalSwapBytes = swapTotalBytes,
         freeSwapBytes = swapFreeBytes,
         totalRamFormatted = formatBytesFromBytes(totalBytes),
         freeRamFormatted = formatBytesFromBytes(freeBytes),
         availableRamFormatted = formatBytesFromBytes(availableBytes),
-        cachedFormatted = "0 B",
+        cachedFormatted = formatBytesFromBytes(cachedBytes),
         totalSwapFormatted = formatBytesFromBytes(swapTotalBytes),
         freeSwapFormatted = formatBytesFromBytes(swapFreeBytes),
         usagePercent = usagePercent
@@ -422,6 +439,11 @@ private fun collectCameraInfo(context: Context): List<CameraInfo> {
                 "No"
             }
 
+            val focalLengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+            val focalLength = if (focalLengths != null && focalLengths.isNotEmpty()) {
+                focalLengths.joinToString(", ") { String.format(Locale.US, "%.1f mm", it) }
+            } else ""
+
             cameras.add(
                 CameraInfo(
                     id = id,
@@ -429,7 +451,7 @@ private fun collectCameraInfo(context: Context): List<CameraInfo> {
                     megapixels = megapixels,
                     resolution = resolution,
                     flash = flash,
-                    focalLength = ""
+                    focalLength = focalLength
                 )
             )
         }
@@ -538,9 +560,11 @@ private fun collectNetworkInfo(): NetworkInfo {
         // Ignore network errors
     }
 
+    val wifiInterface = getSystemProperty("wifi.interface")
+
     return NetworkInfo(
         interfaces = interfaces,
-        wifiInterface = ""
+        wifiInterface = wifiInterface
     )
 }
 

@@ -230,7 +230,7 @@ private fun HardwireApp(
                         isLoading = isLoading,
                         connectionMode = activeMode,
                         deviceIp = activeIp,
-                        isOffline = activeState !is ConnectionState.Connected,
+                        isOffline = activeState is ConnectionState.Disconnected || activeState is ConnectionState.Error,
                         lastUpdated = activeUpdatedAt,
                         onRefresh = { viewModel.refresh() },
                         onSwitchToWifi = { viewModel.switchToWifi() },

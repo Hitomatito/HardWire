@@ -284,20 +284,55 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         val device = devices.value.find { it.id == id } ?: return
         Log.d("HW:DevMgr", "[selectDevice] id=$id type=${device.type}")
         setActive(id)
-        if (device.type == DeviceType.USB) {
-            Log.d("HW:DevMgr", "[selectDevice] es USB -> requestUsbPermission")
-            requestUsbPermission()
-        } else {
-            val state = _states.value[id]
-            Log.d("HW:DevMgr", "[selectDevice] es RED, estado actual=$state")
-            if (state == null || state is ConnectionState.Disconnected || state is ConnectionState.Error) {
-                scope.launch { connectDevice(id) }
+        when (device.type) {
+            DeviceType.USB -> {
+                Log.d("HW:DevMgr", "[selectDevice] es USB -> requestUsbPermission")
+                requestUsbPermission()
+            }
+            DeviceType.LOCAL -> {
+                Log.d("HW:DevMgr", "[selectDevice] es LOCAL, estado actual=${_states.value[id]}")
+                val state = _states.value[id]
+                if (state == null || state is ConnectionState.Disconnected || state is ConnectionState.Error) {
+                    scope.launch { connectDevice(id) }
+                }
+                // If already Connected or GatheringData, just show it
+            }
+            else -> {
+                val state = _states.value[id]
+                Log.d("HW:DevMgr", "[selectDevice] es RED, estado actual=$state")
+                if (state == null || state is ConnectionState.Disconnected || state is ConnectionState.Error) {
+                    scope.launch { connectDevice(id) }
+                }
             }
         }
     }
 
     suspend fun connectDevice(id: String) {
         val device = devices.value.find { it.id == id } ?: return
+
+        // Local device: no ADB connection needed
+        if (device.type == DeviceType.LOCAL) {
+            Log.d("HW:DevMgr", "[connectDevice] LOCAL, recopilando info directa")
+            setState(id, ConnectionState.GatheringData)
+            setActive(id)
+            try {
+                val info = collectLocalDeviceInfo(context)
+                setInfo(id, info)
+                updateWidgetFor(id)
+                if (isInfoValid(info)) {
+                    saveInfo(id, info)
+                    historyRepository?.saveSnapshot(id, info)
+                    _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
+                }
+                setState(id, ConnectionState.Connected)
+                Log.d("HW:DevMgr", "[connectDevice] LOCAL conectado OK")
+            } catch (e: Exception) {
+                Log.e("HW:DevMgr", "[connectDevice] LOCAL fallo: ${e.message}", e)
+                setState(id, ConnectionState.Error(e.message ?: "Error al obtener info local"))
+            }
+            return
+        }
+
         // Guard: skip if already connected and healthy
         val existing = connections[id]
         if (existing != null && existing.isHealthy) {
@@ -443,6 +478,28 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
 
     fun refreshDevice(id: String) {
         Log.d("HW:DevMgr", "[refreshDevice] id=$id")
+        val device = devices.value.find { it.id == id }
+
+        // Local device: re-collect from Android APIs, no ADB needed
+        if (device?.type == DeviceType.LOCAL) {
+            scope.launch {
+                Log.d("HW:DevMgr", "[refreshDevice] LOCAL, recopilando info local")
+                setState(id, ConnectionState.GatheringData)
+                try {
+                val info = collectLocalDeviceInfo(context)
+                setInfo(id, info)
+                updateWidgetFor(id)
+                _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(id, System.currentTimeMillis()) }
+                setState(id, ConnectionState.Connected)
+                Log.d("HW:DevMgr", "[refreshDevice] LOCAL info actualizada OK")
+                } catch (e: Exception) {
+                    Log.e("HW:DevMgr", "[refreshDevice] LOCAL fallo: ${e.message}", e)
+                    setState(id, ConnectionState.Error(e.message ?: "Error al actualizar"))
+                }
+            }
+            return
+        }
+
         scope.launch {
             val conn = connections[id]
             if (conn == null) {
