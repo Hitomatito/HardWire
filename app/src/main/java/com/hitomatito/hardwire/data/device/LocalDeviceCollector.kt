@@ -8,13 +8,13 @@ import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.opengl.GLES20
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.util.DisplayMetrics
 import android.view.WindowManager
+import com.hitomatito.hardwire.data.command.CommandParser
 import com.hitomatito.hardwire.data.model.BatteryInfo
 import com.hitomatito.hardwire.data.model.BuildInfo
 import com.hitomatito.hardwire.data.model.CameraInfo
@@ -90,6 +90,8 @@ private fun collectCpuInfo(): CpuInfo {
     var bogoMips = ""
     var cpuConfig = StringBuilder()
     var processorCount = 0
+    val cpuParts = mutableListOf<String>() // per-core CPU part codes
+    val cpuImplementers = mutableListOf<String>() // per-core implementer codes
 
     try {
         val cpuInfoFile = File("/proc/cpuinfo")
@@ -98,9 +100,9 @@ private fun collectCpuInfo(): CpuInfo {
             for (line in lines) {
                 val trimmed = line.trim()
                 when {
-                    trimmed.startsWith("Processor", ignoreCase = true) && trimmed.startsWith("processor") -> {
+                    trimmed.startsWith("processor", ignoreCase = true)
+                            && trimmed.substringAfter(":").trim().toIntOrNull() != null -> {
                         processorCount++
-                        cpuConfig.appendLine(trimmed)
                     }
                     trimmed.startsWith("Processor") && !trimmed.startsWith("processor") -> {
                         val value = trimmed.substringAfter(":").trim()
@@ -108,7 +110,16 @@ private fun collectCpuInfo(): CpuInfo {
                     }
                     trimmed.startsWith("Hardware") -> hardware = trimmed.substringAfter(":").trim()
                     trimmed.startsWith("Features") -> features = trimmed.substringAfter(":").trim()
-                    trimmed.startsWith("BogoMIPS") -> bogoMips = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("BogoMIPS") -> {
+                        val value = trimmed.substringAfter(":").trim()
+                        if (bogoMips.isBlank()) bogoMips = value
+                    }
+                    trimmed.startsWith("CPU implementer") -> {
+                        cpuImplementers.add(trimmed.substringAfter(":").trim())
+                    }
+                    trimmed.startsWith("CPU part") -> {
+                        cpuParts.add(trimmed.substringAfter(":").trim())
+                    }
                 }
             }
         }
@@ -122,17 +133,70 @@ private fun collectCpuInfo(): CpuInfo {
 
     val architecture = Build.SUPPORTED_ABIS?.firstOrNull() ?: ""
     val cpuAbi = Build.CPU_ABI ?: Build.SUPPORTED_ABIS?.firstOrNull() ?: ""
+    val gpu = "" // GLES20.glGetString is unsafe off GL thread (causes SIGSEGV)
 
-    val gpu = try {
-        GLES20.glGetString(GLES20.GL_RENDERER) ?: ""
-    } catch (e: Exception) {
-        ""
+    // --- SoC detection via system properties + /sys/devices/soc0/ ---
+    val socModel = getSystemProperty("ro.soc.model")
+    val socManufacturerRaw = getSystemProperty("ro.soc.manufacturer")
+    val socPlatform = getSystemProperty("ro.board.platform")
+    val socChipname = getSystemProperty("ro.hardware.chipname")
+    val socVendorModel = getSystemProperty("ro.vendor.soc.model")
+
+    val soc0Family = readFileTrimmed("/sys/devices/soc0/family")
+    val soc0Machine = readFileTrimmed("/sys/devices/soc0/machine")
+
+    // Use CommandParser's SOC_NAMES database for lookup
+    val platform = socPlatform.trim().lowercase(Locale.US)
+    val model = socModel.trim().ifBlank { socVendorModel.trim() }
+    val machine = soc0Machine.trim().lowercase(Locale.US)
+
+    val commercialName = CommandParser.lookupSocCommercialName(platform)
+        ?: CommandParser.lookupSocCommercialName(model.lowercase(Locale.US))
+        ?: CommandParser.lookupSocCommercialName(machine)
+        ?: CommandParser.lookupSocCommercialName(socChipname.trim().lowercase(Locale.US))
+
+    val socName: String
+    val socManufacturer: String
+
+    if (commercialName != null) {
+        socName = commercialName
+        // Resolve manufacturer from raw prop, soc0 family, or commercial name prefix
+        socManufacturer = when {
+            socManufacturerRaw.isNotBlank() -> normalizeSocManufacturer(socManufacturerRaw)
+            soc0Family.isNotBlank() -> normalizeSocManufacturer(soc0Family)
+            else -> when {
+                commercialName.startsWith("Snapdragon") -> "Qualcomm"
+                commercialName.startsWith("Helio") || commercialName.startsWith("Dimensity") -> "MediaTek"
+                commercialName.startsWith("Exynos") -> "Samsung"
+                commercialName.startsWith("Kirin") -> "HiSilicon"
+                commercialName.startsWith("Unisoc") -> "Unisoc"
+                else -> ""
+            }
+        }
+    } else {
+        // Fallback: try Hardware line (e.g. "Qualcomm Technologies, Inc SM8150")
+        val hwSoc = parseSocFromHardwareLine(hardware)
+        if (hwSoc != null) {
+            socName = hwSoc
+            socManufacturer = hwSoc.substringBefore(" ").trim()
+        } else {
+            socName = model.ifBlank { socPlatform.trim() }
+            socManufacturer = normalizeSocManufacturer(socManufacturerRaw)
+        }
+    }
+
+    // Build CPU config with core cluster info
+    val clusterInfo = buildClusterInfo(cpuParts, cpuImplementers)
+    val formattedProcessor = if (socName.isNotBlank()) {
+        "$socName (${cpuParts.size} cores)"
+    } else {
+        processor.ifBlank { "$processorCount cores" }
     }
 
     return CpuInfo(
-        socName = "",
-        socManufacturer = "",
-        processor = processor,
+        socName = socName,
+        socManufacturer = socManufacturer,
+        processor = formattedProcessor,
         hardware = hardware.ifBlank { Build.HARDWARE },
         features = features,
         processorCount = processorCount,
@@ -140,7 +204,7 @@ private fun collectCpuInfo(): CpuInfo {
         architecture = architecture,
         cpuAbi = cpuAbi,
         gpu = gpu,
-        cpuConfig = cpuConfig.toString().trim()
+        cpuConfig = clusterInfo.ifBlank { cpuConfig.toString().trim() }
     )
 }
 
@@ -512,6 +576,155 @@ private fun collectBuildInfo(): BuildInfo {
         },
         kernel = kernel
     )
+}
+
+private fun getSystemProperty(key: String): String {
+    return try {
+        val clazz = Class.forName("android.os.SystemProperties")
+        val get = clazz.getMethod("get", String::class.java)
+        get.invoke(null, key) as? String ?: ""
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+private fun readFileTrimmed(path: String): String {
+    return try {
+        val file = File(path)
+        if (file.exists()) file.readText().trim() else ""
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+private fun normalizeSocManufacturer(raw: String): String {
+    return when (raw.trim().uppercase(Locale.US)) {
+        "QTI", "QUALCOMM" -> "Qualcomm"
+        "SAMSUNG" -> "Samsung"
+        "MTK", "MEDIATEK" -> "MediaTek"
+        "HISILICON", "HI-SILICON" -> "HiSilicon"
+        "UNISOC", "SPREADTRUM" -> "Unisoc"
+        "SNAPDRAGON" -> "Qualcomm"
+        "HELIO", "DIMENSITY" -> "MediaTek"
+        "EXYNOS" -> "Samsung"
+        "KIRIN" -> "HiSilicon"
+        else -> raw.trim()
+    }
+}
+
+private fun parseSocFromHardwareLine(hardware: String): String? {
+    // "Qualcomm Technologies, Inc SM8150" -> "Qualcomm SM8150"
+    // Try to extract model number (e.g. SM8150, MT6785, Exynos 990)
+    val modelRegex = Regex("""(SM\d{4}[A-Z]?|MTK\d{4}|Exynos\s*\d+|SDM\d{3,4}|MSM\d{3,4}|Dimensity\s*\d+|Kirin\s*\d+)""", RegexOption.IGNORE_CASE)
+    val match = modelRegex.find(hardware) ?: return null
+    val model = match.value
+    val manufacturer = when {
+        hardware.contains("Qualcomm", ignoreCase = true) -> "Qualcomm"
+        hardware.contains("MediaTek", ignoreCase = true) -> "MediaTek"
+        hardware.contains("Samsung", ignoreCase = true) -> "Samsung"
+        hardware.contains("HiSilicon", ignoreCase = true) -> "HiSilicon"
+        else -> ""
+    }
+    // Try the SOC_NAMES database with the extracted model
+    val commercial = CommandParser.lookupSocCommercialName(model.lowercase(Locale.US))
+    return if (commercial != null) {
+        if (manufacturer.isNotBlank()) "$manufacturer $commercial" else commercial
+    } else {
+        if (manufacturer.isNotBlank()) "$manufacturer $model" else model
+    }
+}
+
+/** CPU implementer hex -> manufacturer, CPU part hex -> core name */
+private fun buildClusterInfo(cpuParts: List<String>, cpuImplementers: List<String>): String {
+    if (cpuParts.isEmpty()) return ""
+
+    // Group cores by CPU part to identify clusters
+    val clusters = cpuParts.groupingBy { it }.eachCount()
+    if (clusters.isEmpty()) return ""
+
+    val implementer = cpuImplementers.firstOrNull()?.uppercase(Locale.US) ?: ""
+    val vendorName = when (implementer) {
+        "0x51" -> "Qualcomm"
+        "0x41" -> "ARM"
+        "0x53" -> "Samsung"
+        "0x46" -> "Faraday"
+        "0x69" -> "Intel"
+        else -> ""
+    }
+
+    val sb = StringBuilder()
+    if (vendorName.isNotBlank()) {
+        sb.appendLine("CPU Vendor: $vendorName")
+    }
+
+    for ((partHex, count) in clusters.entries.sortedByDescending { it.value }) {
+        val coreName = lookupCpuCoreName(partHex)
+        val partDecimal = partHex.removePrefix("0x").toIntOrNull(16)
+        val partLabel = if (partDecimal != null) "$partHex ($partDecimal)" else partHex
+        sb.appendLine("$count x $coreName [$partLabel]")
+    }
+
+    return sb.toString().trim()
+}
+
+private fun lookupCpuCoreName(partHex: String): String {
+    val part = partHex.removePrefix("0x").lowercase(Locale.US)
+    return when (part) {
+        // ARM Cortex cores
+        "0xd03", "d03" -> "Cortex-A53"
+        "0xd04", "d04" -> "Cortex-A35"
+        "0xd05", "d05" -> "Cortex-A55"
+        "0xd06", "d06" -> "Cortex-A65"
+        "0xd07", "d07" -> "Cortex-A57"
+        "0xd08", "d08" -> "Cortex-A72"
+        "0xd09", "d09" -> "Cortex-A73"
+        "0xd0a", "d0a" -> "Cortex-A75"
+        "0xd0b", "d0b" -> "Cortex-A76"
+        "0xd0c", "d0c" -> "Neoverse-N1"
+        "0xd0d", "d0d" -> "Cortex-A77"
+        "0xd40", "d40" -> "Neoverse-V1"
+        "0xd41", "d41" -> "Cortex-A78"
+        "0xd42", "d42" -> "Cortex-A78AE"
+        "0xd43", "d43" -> "Cortex-A65AE"
+        "0xd44", "d44" -> "Cortex-X1"
+        "0xd46", "d46" -> "Cortex-A510"
+        "0xd47", "d47" -> "Cortex-A710"
+        "0xd48", "d48" -> "Cortex-X2"
+        "0xd49", "d49" -> "Neoverse-N2"
+        "0xd4a", "d4a" -> "Neoverse-E1"
+        "0xd4b", "d4b" -> "Cortex-A78C"
+        "0xd4c", "d4c" -> "Cortex-X1C"
+        "0xd4d", "d4d" -> "Cortex-A715"
+        "0xd4e", "d4e" -> "Cortex-X3"
+        "0xd4f", "d4f" -> "Neoverse-V2"
+        "0xd80", "d80" -> "Cortex-A520"
+        "0xd81", "d81" -> "Cortex-A720"
+        "0xd82", "d82" -> "Cortex-X4"
+        "0xd84", "d84" -> "Neoverse-V3"
+        "0xd85", "d85" -> "Cortex-X925"
+        "0xd87", "d87" -> "Cortex-A725"
+        "0xd89", "d89" -> "Cortex-A520AE"
+        // Qualcomm custom cores
+        "800" -> "Kryo (Silver)"
+        "801" -> "Kryo (Gold)"
+        "802" -> "Kryo 200 (Gold)"
+        "803" -> "Kryo 200 (Silver)"
+        "804" -> "Kryo 485 (Silver)"
+        "805" -> "Kryo 485 (Gold)"
+        // Samsung
+        "0x001" -> "Mongoose M1"
+        "0x002" -> "Mongoose M2"
+        "0x003" -> "Mongoose M3"
+        "0x004" -> "Mongoose M4"
+        "0x005" -> "Mongoose M5"
+        // Apple
+        "7000", "7001", "7002", "7003" -> "Apple Lightning"
+        "8000", "8001", "8002", "8003" -> "Apple Monsoon/Mistral"
+        "8010", "8011", "8012", "8015" -> "Apple Vortex/Tempest"
+        "8020", "8021", "8022", "8028" -> "Apple Icestorm/Firestorm"
+        "8030", "8031", "8032", "8033", "8034", "8035" -> "Apple Blizzard/Avalanche"
+        else -> "CPU part $partHex"
+    }
 }
 
 private fun formatBytesFromBytes(bytes: Long): String {
