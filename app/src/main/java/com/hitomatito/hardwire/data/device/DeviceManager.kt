@@ -162,7 +162,11 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
     }
 
     fun getMode(id: String): String = _modes.value[id] ?: (devices.value.find { it.id == id }?.let {
-        if (it.type == DeviceType.USB) "USB" else "Red"
+        when (it.type) {
+            DeviceType.USB -> "USB"
+            DeviceType.LOCAL -> ""
+            DeviceType.NETWORK -> "Red"
+        }
     } ?: "")
 
     fun getIp(id: String): String = _ips.value[id] ?: (devices.value.find { it.id == id }?.host ?: "")
