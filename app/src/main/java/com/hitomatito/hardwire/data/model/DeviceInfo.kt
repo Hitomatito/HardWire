@@ -29,7 +29,10 @@ data class GeneralInfo(
     val androidVersion: String = "",
     val sdkVersion: String = "",
     val fingerprint: String = "",
-    val phone: String = ""
+    val phone: String = "",
+    val securityPatch: String = "",
+    val baseOs: String = "",
+    val customOs: String = ""
 )
 
 @Serializable
@@ -44,7 +47,9 @@ data class CpuInfo(
     val architecture: String = "",
     val cpuAbi: String = "",
     val gpu: String = "",
-    val cpuConfig: String = ""
+    val cpuConfig: String = "",
+    val maxFrequency: String = "",
+    val minFrequency: String = ""
 )
 
 @Serializable
@@ -84,7 +89,10 @@ data class DisplayInfo(
     val density: String = "",
     val densityDpi: String = "",
     val refreshRate: String = "",
-    val displayInfo: String = ""
+    val displayInfo: String = "",
+    val physicalSize: String = "",
+    val colorMode: String = "",
+    val hdrSupport: String = ""
 )
 
 @Serializable
@@ -112,7 +120,10 @@ data class CameraInfo(
     val megapixels: String = "",
     val resolution: String = "",
     val flash: String = "",
-    val focalLength: String = ""
+    val focalLength: String = "",
+    val aperture: String = "",
+    val sensorSize: String = "",
+    val hardwareLevel: String = ""
 )
 
 @Serializable
@@ -123,7 +134,9 @@ data class SensorInfo(
     val version: String = "",
     val maxRate: String = "",
     val fifoSize: String = "",
-    val wakeUp: Boolean = false
+    val wakeUp: Boolean = false,
+    val resolution: String = "",
+    val power: String = ""
 )
 
 @Serializable
@@ -156,7 +169,9 @@ data class BuildInfo(
     val tags: String = "",
     val type: String = "",
     val baseband: String = "",
-    val kernel: String = ""
+    val kernel: String = "",
+    val securityPatch: String = "",
+    val incremental: String = ""
 )
 
 sealed class ConnectionState {

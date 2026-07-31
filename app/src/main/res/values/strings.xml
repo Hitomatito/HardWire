@@ -90,6 +90,9 @@
     <string name="label_imei_number">IMEI %d</string>
     <string name="label_baseband">Baseband</string>
     <string name="label_fingerprint">Fingerprint</string>
+    <string name="label_security_patch">Parche de seguridad</string>
+    <string name="label_base_os">Base OS</string>
+    <string name="label_custom_os">Sistema personalizado</string>
 
     <!-- Info Screen - CPU Card -->
     <string name="label_soc_manufacturer">Fabricante SoC</string>
@@ -99,6 +102,8 @@
     <string name="label_architecture">Arquitectura</string>
     <string name="label_processor">Procesador</string>
     <string name="label_bogomips">BogoMIPS</string>
+    <string name="label_max_freq">Frecuencia maxima</string>
+    <string name="label_min_freq">Frecuencia minima</string>
 
     <!-- Info Screen - Memory Card -->
     <string name="label_ram_total">RAM Total</string>
@@ -120,6 +125,9 @@
     <string name="label_resolution">Resolucion</string>
     <string name="label_density">Densidad</string>
     <string name="label_refresh_rate">Refresh Rate</string>
+    <string name="label_physical_size">Tamano fisico</string>
+    <string name="label_color_mode">Modo de color</string>
+    <string name="label_hdr">HDR</string>
 
     <!-- Info Screen - Storage Card -->
     <string name="label_used">Usado: %s</string>
@@ -131,6 +139,9 @@
     <string name="label_sizes">Tamanos</string>
     <string name="label_focal_length">Distancia focal</string>
     <string name="label_flash">Flash</string>
+    <string name="label_aperture">Apertura</string>
+    <string name="label_sensor_size">Tamano del sensor</string>
+    <string name="label_hardware_level">Nivel de hardware</string>
 
     <!-- Info Screen - Build Card -->
     <string name="label_brand">Brand</string>
@@ -141,6 +152,7 @@
     <string name="label_type">Type</string>
     <string name="label_host">Host</string>
     <string name="label_kernel">Kernel</string>
+    <string name="label_incremental">Incremental</string>
 
     <!-- Device Drawer -->
     <string name="drawer_devices">Dispositivos</string>

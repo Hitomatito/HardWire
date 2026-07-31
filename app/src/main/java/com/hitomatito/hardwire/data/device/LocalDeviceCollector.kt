@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+import kotlin.math.sqrt
 
 suspend fun collectLocalDeviceInfo(context: Context): DeviceInfo = withContext(Dispatchers.IO) {
     val general = collectGeneralInfo()
@@ -74,6 +75,20 @@ private fun collectGeneralInfo(): GeneralInfo {
 
     val phone = Build.getRadioVersion() ?: ""
 
+    val securityPatch = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Build.VERSION.SECURITY_PATCH ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
+    val baseOs = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Build.VERSION.BASE_OS ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
+    val customOs = detectCustomOs()
+
     return GeneralInfo(
         manufacturer = Build.MANUFACTURER ?: "",
         model = Build.MODEL ?: "",
@@ -82,12 +97,47 @@ private fun collectGeneralInfo(): GeneralInfo {
         board = Build.BOARD ?: "",
         hardware = Build.HARDWARE ?: "",
         serialNumber = serial,
-        imeis = emptyList(), // Requires READ_PRIVILEGED_PHONE_STATE, not available to normal apps
+        imeis = emptyList(),
         androidVersion = Build.VERSION.RELEASE ?: "",
         sdkVersion = Build.VERSION.SDK_INT.toString(),
         fingerprint = Build.FINGERPRINT ?: "",
-        phone = phone
+        phone = phone,
+        securityPatch = securityPatch,
+        baseOs = baseOs,
+        customOs = customOs
     )
+}
+
+private fun detectCustomOs(): String {
+    // Xiaomi / Redmi
+    val miuiVersion = getSystemProperty("ro.miui.ui.version.name")
+    if (miuiVersion.isNotBlank()) return "MIUI $miuiVersion"
+
+    // Huawei
+    val emuiVersion = getSystemProperty("ro.build.version.emui")
+    if (emuiVersion.isNotBlank()) return "EMUI $emuiVersion"
+
+    // OPPO / Realme
+    val colorOsVersion = getSystemProperty("ro.build.version.opporom")
+    if (colorOsVersion.isNotBlank()) return "ColorOS $colorOsVersion"
+
+    // Vivo
+    val funtouchVersion = getSystemProperty("ro.vivo.os.version")
+    if (funtouchVersion.isNotBlank()) return "Funtouch $funtouchVersion"
+
+    // OnePlus
+    val oosVersion = getSystemProperty("ro.build.version.oplus")
+    if (oosVersion.isNotBlank()) return "OxygenOS $oosVersion"
+
+    // Samsung
+    val oneUiVersion = getSystemProperty("ro.build.version.oneui")
+    if (oneUiVersion.isNotBlank()) return "One UI $oneUiVersion"
+
+    // Meizu
+    val flymeVersion = getSystemProperty("ro.build.display.meizu")
+    if (flymeVersion.isNotBlank()) return "Flyme $flymeVersion"
+
+    return ""
 }
 
 private fun collectCpuInfo(): CpuInfo {
@@ -97,8 +147,8 @@ private fun collectCpuInfo(): CpuInfo {
     var bogoMips = ""
     var cpuConfig = StringBuilder()
     var processorCount = 0
-    val cpuParts = mutableListOf<String>() // per-core CPU part codes
-    val cpuImplementers = mutableListOf<String>() // per-core implementer codes
+    val cpuParts = mutableListOf<String>()
+    val cpuImplementers = mutableListOf<String>()
 
     try {
         val cpuInfoFile = File("/proc/cpuinfo")
@@ -140,7 +190,18 @@ private fun collectCpuInfo(): CpuInfo {
 
     val architecture = Build.SUPPORTED_ABIS?.firstOrNull() ?: ""
     val cpuAbi = Build.CPU_ABI ?: Build.SUPPORTED_ABIS?.firstOrNull() ?: ""
-    val gpu = "" // GLES20.glGetString is unsafe off GL thread (causes SIGSEGV)
+    val gpu = ""
+
+    val architectureFormatted = formatArchitecture(architecture)
+
+    // CPU frequencies
+    val maxFreqKhz = readFileTrimmed("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq")
+        .trim().toLongOrNull() ?: 0L
+    val minFreqKhz = readFileTrimmed("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq")
+        .trim().toLongOrNull() ?: 0L
+
+    val maxFrequency = formatFrequency(maxFreqKhz)
+    val minFrequency = formatFrequency(minFreqKhz)
 
     // --- SoC detection via system properties + /sys/devices/soc0/ ---
     val socModel = getSystemProperty("ro.soc.model")
@@ -152,9 +213,21 @@ private fun collectCpuInfo(): CpuInfo {
     val soc0Family = readFileTrimmed("/sys/devices/soc0/family")
     val soc0Machine = readFileTrimmed("/sys/devices/soc0/machine")
 
-    // Use CommandParser's SOC_NAMES database for lookup
+    // API 31+ Build.SOC_MODEL / Build.SOC_MANUFACTURER
+    val buildSocModel = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MODEL?.takeIf { it.isNotBlank() } ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
+    val buildSocManufacturer = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MANUFACTURER?.takeIf { it.isNotBlank() } ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
     val platform = socPlatform.trim().lowercase(Locale.US)
-    val model = socModel.trim().ifBlank { socVendorModel.trim() }
+    val model = socModel.trim().ifBlank { socVendorModel.trim() }.ifBlank { buildSocModel }
     val machine = soc0Machine.trim().lowercase(Locale.US)
 
     val commercialName = CommandParser.lookupSocCommercialName(platform)
@@ -167,10 +240,10 @@ private fun collectCpuInfo(): CpuInfo {
 
     if (commercialName != null) {
         socName = commercialName
-        // Resolve manufacturer from raw prop, soc0 family, or commercial name prefix
         socManufacturer = when {
             socManufacturerRaw.isNotBlank() -> normalizeSocManufacturer(socManufacturerRaw)
             soc0Family.isNotBlank() -> normalizeSocManufacturer(soc0Family)
+            buildSocManufacturer.isNotBlank() -> normalizeSocManufacturer(buildSocManufacturer)
             else -> when {
                 commercialName.startsWith("Snapdragon") -> "Qualcomm"
                 commercialName.startsWith("Helio") || commercialName.startsWith("Dimensity") -> "MediaTek"
@@ -181,18 +254,18 @@ private fun collectCpuInfo(): CpuInfo {
             }
         }
     } else {
-        // Fallback: try Hardware line (e.g. "Qualcomm Technologies, Inc SM8150")
         val hwSoc = parseSocFromHardwareLine(hardware)
         if (hwSoc != null) {
             socName = hwSoc
             socManufacturer = hwSoc.substringBefore(" ").trim()
         } else {
             socName = model.ifBlank { socPlatform.trim() }
-            socManufacturer = normalizeSocManufacturer(socManufacturerRaw)
+            socManufacturer = normalizeSocManufacturer(
+                socManufacturerRaw.ifBlank { buildSocManufacturer }
+            )
         }
     }
 
-    // Build CPU config with core cluster info
     val clusterInfo = buildClusterInfo(cpuParts, cpuImplementers)
     val formattedProcessor = if (socName.isNotBlank()) {
         "$socName (${cpuParts.size} cores)"
@@ -208,23 +281,42 @@ private fun collectCpuInfo(): CpuInfo {
         features = features,
         processorCount = processorCount,
         bogoMips = bogoMips,
-        architecture = architecture,
+        architecture = architectureFormatted,
         cpuAbi = cpuAbi,
         gpu = gpu,
-        cpuConfig = clusterInfo.ifBlank { cpuConfig.toString().trim() }
+        cpuConfig = clusterInfo.ifBlank { cpuConfig.toString().trim() },
+        maxFrequency = maxFrequency,
+        minFrequency = minFrequency
     )
 }
 
+private fun formatArchitecture(abi: String): String {
+    if (abi.isBlank()) return abi
+    val is64Bit = abi.contains("64")
+    val base = when {
+        abi.startsWith("arm64", ignoreCase = true) -> "ARMv8"
+        abi.startsWith("arm", ignoreCase = true) -> "ARMv7"
+        abi.startsWith("x86_64", ignoreCase = true) -> "x86_64"
+        abi.startsWith("x86", ignoreCase = true) -> "x86"
+        else -> abi
+    }
+    return if (is64Bit) "$base (64-bit)" else "$base (32-bit)"
+}
+
+private fun formatFrequency(khz: Long): String {
+    if (khz <= 0) return ""
+    return if (khz >= 1_000_000) {
+        String.format(Locale.US, "%.2f GHz", khz / 1_000_000.0)
+    } else {
+        String.format(Locale.US, "%d MHz", khz / 1000)
+    }
+}
+
 private fun collectMemoryInfo(context: Context): MemoryInfo {
-    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-    val memoryInfo = ActivityManager.MemoryInfo()
-    activityManager.getMemoryInfo(memoryInfo)
-
-    val totalBytes = memoryInfo.totalMem
-    val availableBytes = memoryInfo.availMem
-    val freeBytes = memoryInfo.availMem
-
-    var swapTotalBytes = totalBytes
+    var totalBytes = 0L
+    var freeBytes = 0L
+    var availableBytes = 0L
+    var swapTotalBytes = 0L
     var swapFreeBytes = 0L
     var cachedBytes = 0L
     var buffersBytes = 0L
@@ -235,21 +327,26 @@ private fun collectMemoryInfo(context: Context): MemoryInfo {
             val lines = memInfoFile.readLines()
             for (line in lines) {
                 when {
+                    line.startsWith("MemTotal") -> {
+                        totalBytes = extractKbValue(line) * 1024
+                    }
+                    line.startsWith("MemFree") -> {
+                        freeBytes = extractKbValue(line) * 1024
+                    }
+                    line.startsWith("MemAvailable") -> {
+                        availableBytes = extractKbValue(line) * 1024
+                    }
                     line.startsWith("SwapTotal") -> {
-                        val kb = extractKbValue(line)
-                        swapTotalBytes = kb * 1024
+                        swapTotalBytes = extractKbValue(line) * 1024
                     }
                     line.startsWith("SwapFree") -> {
-                        val kb = extractKbValue(line)
-                        swapFreeBytes = kb * 1024
+                        swapFreeBytes = extractKbValue(line) * 1024
                     }
                     line.startsWith("Cached") -> {
-                        val kb = extractKbValue(line)
-                        cachedBytes = kb * 1024
+                        cachedBytes = extractKbValue(line) * 1024
                     }
                     line.startsWith("Buffers") -> {
-                        val kb = extractKbValue(line)
-                        buffersBytes = kb * 1024
+                        buffersBytes = extractKbValue(line) * 1024
                     }
                 }
             }
@@ -257,6 +354,22 @@ private fun collectMemoryInfo(context: Context): MemoryInfo {
     } catch (e: Exception) {
         // Ignore read errors
     }
+
+    // Fallback to ActivityManager if /proc/meminfo parsing failed
+    if (totalBytes <= 0L) {
+        try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            totalBytes = memoryInfo.totalMem
+            availableBytes = memoryInfo.availMem
+            freeBytes = memoryInfo.availMem
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    if (availableBytes <= 0L) availableBytes = freeBytes
 
     val usagePercent = if (totalBytes > 0) {
         ((1 - availableBytes.toFloat() / totalBytes) * 100).coerceIn(0f, 100f)
@@ -368,42 +481,160 @@ private fun collectDisplayInfo(context: Context): DisplayInfo {
 
     val refreshRate = "${display.refreshRate.toInt()} Hz"
 
+    // Physical diagonal size in inches
+    val physicalSize = try {
+        if (metrics.densityDpi > 0) {
+            val widthInches = metrics.widthPixels.toDouble() / metrics.densityDpi * 25.4
+            val heightInches = metrics.heightPixels.toDouble() / metrics.densityDpi * 25.4
+            val diagonalInches = sqrt(widthInches * widthInches + heightInches * heightInches)
+            String.format(Locale.US, "%.2f\"", diagonalInches)
+        } else ""
+    } catch (e: Exception) { "" }
+
+    // Color mode - no reliable public API; report based on HDR capabilities
+    val colorMode = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val hdrCaps = display.getHdrCapabilities()
+            if (hdrCaps != null && hdrCaps.supportedHdrTypes.isNotEmpty()) {
+                "Wide Color Gamut"
+            } else {
+                "Standard (sRGB)"
+            }
+        } else ""
+    } catch (e: Exception) { "" }
+
+    // HDR support (API 24+)
+    val hdrSupport = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val hdrCapabilities = display.getHdrCapabilities()
+            if (hdrCapabilities != null) {
+                val supportedHdrTypes = hdrCapabilities.supportedHdrTypes
+                if (supportedHdrTypes.isNotEmpty()) {
+                    val hdrNames = supportedHdrTypes.map { hdr ->
+                        when (hdr) {
+                            android.view.Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION -> "Dolby Vision"
+                            android.view.Display.HdrCapabilities.HDR_TYPE_HDR10 -> "HDR10"
+                            android.view.Display.HdrCapabilities.HDR_TYPE_HLG -> "HLG"
+                            android.view.Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS -> "HDR10+"
+                            else -> "HDR type $hdr"
+                        }
+                    }
+                    hdrNames.joinToString(", ")
+                } else "No"
+            } else "No"
+        } else ""
+    } catch (e: Exception) { "" }
+
     return DisplayInfo(
         resolution = resolution,
         density = density,
         densityDpi = metrics.densityDpi.toString(),
         refreshRate = refreshRate,
-        displayInfo = ""
+        displayInfo = "",
+        physicalSize = physicalSize,
+        colorMode = colorMode,
+        hdrSupport = hdrSupport
     )
 }
 
 private fun collectStorageInfo(): StorageInfo {
-    val stat = StatFs(Environment.getDataDirectory().path)
-    val blockSize = stat.blockSizeLong
-    val totalBlocks = stat.blockCountLong
-    val availableBlocks = stat.availableBlocksLong
+    val partitions = mutableListOf<String>()
 
-    val totalBytes = totalBlocks * blockSize
-    val availableBytes = availableBlocks * blockSize
-    val usedBytes = totalBytes - availableBytes
+    // Try /proc/self/mountinfo first, fall back to /proc/mounts
+    try {
+        val mountFile = File("/proc/self/mountinfo")
+        if (mountFile.exists()) {
+            val lines = mountFile.readLines()
+            for (line in lines) {
+                val parts = line.split(" ")
+                if (parts.size >= 4) {
+                    val mountPoint = parts[4]
+                    if (mountPoint.startsWith("/data") || mountPoint == "/system" ||
+                        mountPoint == "/cache" || mountPoint == "/vendor") {
+                        if (mountPoint !in partitions) partitions.add(mountPoint)
+                    }
+                }
+            }
+        }
+    } catch (e: Exception) {
+        // Ignore
+    }
 
-    val usagePercent = if (totalBytes > 0) {
-        (usedBytes.toFloat() / totalBytes * 100).coerceIn(0f, 100f)
-    } else 0f
+    if (partitions.isEmpty()) {
+        try {
+            val mountFile = File("/proc/mounts")
+            if (mountFile.exists()) {
+                val lines = mountFile.readLines()
+                for (line in lines) {
+                    val parts = line.split(" ")
+                    if (parts.size >= 2) {
+                        val mountPoint = parts[1]
+                        if (mountPoint.startsWith("/data") || mountPoint == "/system" ||
+                            mountPoint == "/cache" || mountPoint == "/vendor") {
+                            if (mountPoint !in partitions) partitions.add(mountPoint)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
 
-    val mainStorage = FileSystemInfo(
-        filesystem = "userdata",
-        sizeFormatted = formatBytesFromBytes(totalBytes),
-        usedFormatted = formatBytesFromBytes(usedBytes),
-        availableFormatted = formatBytesFromBytes(availableBytes),
-        mountPoint = "/data",
-        sizeBytes = totalBytes,
-        usedBytes = usedBytes,
-        availableBytes = availableBytes,
-        usagePercent = usagePercent
-    )
+    // Ensure /data is included
+    if ("/data" !in partitions) {
+        partitions.add(0, "/data")
+    }
 
-    return StorageInfo(filesystems = listOf(mainStorage))
+    val filesystems = mutableListOf<FileSystemInfo>()
+
+    for (mountPoint in partitions) {
+        try {
+            val resolvedPath = when (mountPoint) {
+                "/data" -> Environment.getDataDirectory().path
+                "/system" -> Environment.getRootDirectory().path
+                else -> mountPoint
+            }
+            val stat = StatFs(resolvedPath)
+            val blockSize = stat.blockSizeLong
+            val totalBlocks = stat.blockCountLong
+            val availableBlocks = stat.availableBlocksLong
+
+            val totalBytes = totalBlocks * blockSize
+            val availableBytes = availableBlocks * blockSize
+            val usedBytes = totalBytes - availableBytes
+
+            val usagePercent = if (totalBytes > 0) {
+                (usedBytes.toFloat() / totalBytes * 100).coerceIn(0f, 100f)
+            } else 0f
+
+            val label = when (mountPoint) {
+                "/data" -> "userdata"
+                "/system" -> "system"
+                "/cache" -> "cache"
+                "/vendor" -> "vendor"
+                else -> mountPoint.removePrefix("/")
+            }
+
+            filesystems.add(
+                FileSystemInfo(
+                    filesystem = label,
+                    sizeFormatted = formatBytesFromBytes(totalBytes),
+                    usedFormatted = formatBytesFromBytes(usedBytes),
+                    availableFormatted = formatBytesFromBytes(availableBytes),
+                    mountPoint = mountPoint,
+                    sizeBytes = totalBytes,
+                    usedBytes = usedBytes,
+                    availableBytes = availableBytes,
+                    usagePercent = usagePercent
+                )
+            )
+        } catch (e: Exception) {
+            // Skip partitions that can't be stat'd
+        }
+    }
+
+    return StorageInfo(filesystems = filesystems)
 }
 
 private fun collectCameraInfo(context: Context): List<CameraInfo> {
@@ -444,6 +675,34 @@ private fun collectCameraInfo(context: Context): List<CameraInfo> {
                 focalLengths.joinToString(", ") { String.format(Locale.US, "%.1f mm", it) }
             } else ""
 
+            // Aperture
+            val aperture = try {
+                val apertures = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)
+                if (apertures != null && apertures.isNotEmpty()) {
+                    "f/" + String.format(Locale.US, "%.1f", apertures[0])
+                } else ""
+            } catch (e: Exception) { "" }
+
+            // Sensor physical size
+            val sensorSize = try {
+                val size = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
+                if (size != null) {
+                    String.format(Locale.US, "%.1f x %.1f mm", size.width, size.height)
+                } else ""
+            } catch (e: Exception) { "" }
+
+            // Hardware level
+            val hardwareLevel = try {
+                val level = characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)
+                when (level) {
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY -> "Legacy"
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED -> "Limited"
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL -> "Full"
+                    CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> "Level 3"
+                    else -> "Unknown"
+                }
+            } catch (e: Exception) { "" }
+
             cameras.add(
                 CameraInfo(
                     id = id,
@@ -451,7 +710,10 @@ private fun collectCameraInfo(context: Context): List<CameraInfo> {
                     megapixels = megapixels,
                     resolution = resolution,
                     flash = flash,
-                    focalLength = focalLength
+                    focalLength = focalLength,
+                    aperture = aperture,
+                    sensorSize = sensorSize,
+                    hardwareLevel = hardwareLevel
                 )
             )
         }
@@ -470,6 +732,18 @@ private fun collectSensorInfo(context: Context): List<SensorInfo> {
         val sensorList = sensorManager.getSensorList(Sensor.TYPE_ALL)
 
         for (sensor in sensorList) {
+            val resolution = try {
+                if (sensor.resolution > 0f) {
+                    "${sensor.resolution} ${getSensorUnit(sensor.type)}"
+                } else ""
+            } catch (e: Exception) { "" }
+
+            val power = try {
+                if (sensor.power > 0f) {
+                    String.format(Locale.US, "%.2f mA", sensor.power)
+                } else ""
+            } catch (e: Exception) { "" }
+
             sensors.add(
                 SensorInfo(
                     name = sensor.name,
@@ -478,7 +752,9 @@ private fun collectSensorInfo(context: Context): List<SensorInfo> {
                     version = sensor.version.toString(),
                     maxRate = "${sensor.maximumRange} ${getSensorUnit(sensor.type)}",
                     fifoSize = sensor.fifoReservedEventCount.toString(),
-                    wakeUp = sensor.isWakeUpSensor
+                    wakeUp = sensor.isWakeUpSensor,
+                    resolution = resolution,
+                    power = power
                 )
             )
         }
@@ -522,7 +798,7 @@ private fun getSensorUnit(type: Int): String = when (type) {
 }
 
 private fun collectNetworkInfo(): NetworkInfo {
-    val interfaces = mutableListOf<com.hitomatito.hardwire.data.model.NetworkInterface>()
+    val interfaces = mutableListOf<NetworkInterface>()
 
     try {
         val networkInterfaces = java.net.NetworkInterface.getNetworkInterfaces()
@@ -545,7 +821,7 @@ private fun collectNetworkInfo(): NetworkInfo {
                     val address = addresses.nextElement()
                     if (!address.isLoopbackAddress && address is java.net.Inet4Address) {
                         interfaces.add(
-                            com.hitomatito.hardwire.data.model.NetworkInterface(
+                            NetworkInterface(
                                 name = name,
                                 ipAddress = address.hostAddress ?: "",
                                 macAddress = mac,
@@ -579,6 +855,16 @@ private fun collectBuildInfo(): BuildInfo {
         // Ignore read errors
     }
 
+    val securityPatch = try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Build.VERSION.SECURITY_PATCH ?: ""
+        } else ""
+    } catch (e: Exception) { "" }
+
+    val incremental = try {
+        Build.VERSION.INCREMENTAL ?: ""
+    } catch (e: Exception) { "" }
+
     return BuildInfo(
         board = Build.BOARD ?: "",
         bootloader = Build.BOOTLOADER ?: "",
@@ -598,7 +884,9 @@ private fun collectBuildInfo(): BuildInfo {
         } catch (e: Exception) {
             ""
         },
-        kernel = kernel
+        kernel = kernel,
+        securityPatch = securityPatch,
+        incremental = incremental
     )
 }
 
@@ -637,8 +925,6 @@ private fun normalizeSocManufacturer(raw: String): String {
 }
 
 private fun parseSocFromHardwareLine(hardware: String): String? {
-    // "Qualcomm Technologies, Inc SM8150" -> "Qualcomm SM8150"
-    // Try to extract model number (e.g. SM8150, MT6785, Exynos 990)
     val modelRegex = Regex("""(SM\d{4}[A-Z]?|MTK\d{4}|Exynos\s*\d+|SDM\d{3,4}|MSM\d{3,4}|Dimensity\s*\d+|Kirin\s*\d+)""", RegexOption.IGNORE_CASE)
     val match = modelRegex.find(hardware) ?: return null
     val model = match.value
@@ -649,7 +935,6 @@ private fun parseSocFromHardwareLine(hardware: String): String? {
         hardware.contains("HiSilicon", ignoreCase = true) -> "HiSilicon"
         else -> ""
     }
-    // Try the SOC_NAMES database with the extracted model
     val commercial = CommandParser.lookupSocCommercialName(model.lowercase(Locale.US))
     return if (commercial != null) {
         if (manufacturer.isNotBlank()) "$manufacturer $commercial" else commercial
@@ -658,11 +943,9 @@ private fun parseSocFromHardwareLine(hardware: String): String? {
     }
 }
 
-/** CPU implementer hex -> manufacturer, CPU part hex -> core name */
 private fun buildClusterInfo(cpuParts: List<String>, cpuImplementers: List<String>): String {
     if (cpuParts.isEmpty()) return ""
 
-    // Group cores by CPU part to identify clusters
     val clusters = cpuParts.groupingBy { it }.eachCount()
     if (clusters.isEmpty()) return ""
 
@@ -694,7 +977,6 @@ private fun buildClusterInfo(cpuParts: List<String>, cpuImplementers: List<Strin
 private fun lookupCpuCoreName(partHex: String): String {
     val part = partHex.removePrefix("0x").lowercase(Locale.US)
     return when (part) {
-        // ARM Cortex cores
         "0xd03", "d03" -> "Cortex-A53"
         "0xd04", "d04" -> "Cortex-A35"
         "0xd05", "d05" -> "Cortex-A55"
@@ -728,20 +1010,17 @@ private fun lookupCpuCoreName(partHex: String): String {
         "0xd85", "d85" -> "Cortex-X925"
         "0xd87", "d87" -> "Cortex-A725"
         "0xd89", "d89" -> "Cortex-A520AE"
-        // Qualcomm custom cores
         "800" -> "Kryo (Silver)"
         "801" -> "Kryo (Gold)"
         "802" -> "Kryo 200 (Gold)"
         "803" -> "Kryo 200 (Silver)"
         "804" -> "Kryo 485 (Silver)"
         "805" -> "Kryo 485 (Gold)"
-        // Samsung
         "0x001" -> "Mongoose M1"
         "0x002" -> "Mongoose M2"
         "0x003" -> "Mongoose M3"
         "0x004" -> "Mongoose M4"
         "0x005" -> "Mongoose M5"
-        // Apple
         "7000", "7001", "7002", "7003" -> "Apple Lightning"
         "8000", "8001", "8002", "8003" -> "Apple Monsoon/Mistral"
         "8010", "8011", "8012", "8015" -> "Apple Vortex/Tempest"

@@ -295,6 +295,13 @@ fun InfoScreen(
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(sensor.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
                                                     Text(sensor.vendor, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                                    if (sensor.resolution.isNotBlank() || sensor.power.isNotBlank()) {
+                                                        val detail = listOfNotNull(
+                                                            sensor.resolution.takeIf { it.isNotBlank() },
+                                                            sensor.power.takeIf { it.isNotBlank() }
+                                                        ).joinToString(" | ")
+                                                        Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                                                    }
                                                 }
                                                 Column(horizontalAlignment = Alignment.End) {
                                                     if (sensor.maxRate.isNotBlank()) {
@@ -540,6 +547,8 @@ fun CpuCard(info: CpuInfo) {
             if (info.socManufacturer.isNotBlank()) InfoRow(stringResource(R.string.label_soc_manufacturer), info.socManufacturer)
             if (info.cpuConfig.isNotBlank()) InfoRow(stringResource(R.string.label_config), info.cpuConfig)
             InfoRow(stringResource(R.string.label_cores), info.processorCount.toString())
+            if (info.maxFrequency.isNotBlank()) InfoRow(stringResource(R.string.label_max_freq), info.maxFrequency)
+            if (info.minFrequency.isNotBlank()) InfoRow(stringResource(R.string.label_min_freq), info.minFrequency)
             if (info.gpu.isNotBlank()) InfoRow(stringResource(R.string.label_gpu), info.gpu)
             if (info.hardware.isNotBlank()) InfoRow(stringResource(R.string.label_hardware), info.hardware)
             if (info.architecture.isNotBlank()) InfoRow(stringResource(R.string.label_architecture), info.architecture)
@@ -628,8 +637,11 @@ fun DisplayCard(info: DisplayInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             if (info.resolution.isNotBlank()) InfoRow(stringResource(R.string.label_resolution), info.resolution)
+            if (info.physicalSize.isNotBlank()) InfoRow(stringResource(R.string.label_physical_size), info.physicalSize)
             if (info.density.isNotBlank()) InfoRow(stringResource(R.string.label_density), info.density)
             if (info.refreshRate.isNotBlank()) InfoRow(stringResource(R.string.label_refresh_rate), info.refreshRate)
+            if (info.colorMode.isNotBlank()) InfoRow(stringResource(R.string.label_color_mode), info.colorMode)
+            if (info.hdrSupport.isNotBlank()) InfoRow(stringResource(R.string.label_hdr), info.hdrSupport)
         }
     }
 }
@@ -677,10 +689,13 @@ fun GeneralCard(info: GeneralInfo) {
             InfoRow(stringResource(R.string.label_manufacturer), info.manufacturer)
             InfoRow(stringResource(R.string.label_model), info.model)
             if (info.marketName.isNotBlank()) InfoRow(stringResource(R.string.label_market_name), info.marketName)
+            if (info.customOs.isNotBlank()) InfoRow(stringResource(R.string.label_custom_os), info.customOs)
             InfoRow(stringResource(R.string.label_device), info.device)
             if (info.board.isNotBlank()) InfoRow(stringResource(R.string.label_board), info.board)
             if (info.hardware.isNotBlank()) InfoRow(stringResource(R.string.label_hardware), info.hardware)
             InfoRow(stringResource(R.string.label_android), info.androidVersion)
+            if (info.securityPatch.isNotBlank()) InfoRow(stringResource(R.string.label_security_patch), info.securityPatch)
+            if (info.baseOs.isNotBlank()) InfoRow(stringResource(R.string.label_base_os), info.baseOs)
             InfoRow(stringResource(R.string.label_sdk), info.sdkVersion)
             InfoRow(stringResource(R.string.label_serial), info.serialNumber)
             for ((index, imei) in info.imeis.withIndex()) {
@@ -708,6 +723,9 @@ fun CameraCard(info: CameraInfo) {
             if (info.megapixels.isNotBlank()) InfoRow(stringResource(R.string.label_resolution), info.megapixels)
             if (info.resolution.isNotBlank()) InfoRow(stringResource(R.string.label_sizes), info.resolution)
             if (info.focalLength.isNotBlank()) InfoRow(stringResource(R.string.label_focal_length), info.focalLength)
+            if (info.aperture.isNotBlank()) InfoRow(stringResource(R.string.label_aperture), info.aperture)
+            if (info.sensorSize.isNotBlank()) InfoRow(stringResource(R.string.label_sensor_size), info.sensorSize)
+            if (info.hardwareLevel.isNotBlank()) InfoRow(stringResource(R.string.label_hardware_level), info.hardwareLevel)
             if (info.flash.isNotBlank()) InfoRow(stringResource(R.string.label_flash), info.flash)
         }
     }
@@ -740,7 +758,9 @@ fun BuildCard(info: BuildInfo) {
             if (info.manufacturer.isNotBlank()) InfoRow(stringResource(R.string.label_manufacturer), info.manufacturer)
             if (info.product.isNotBlank()) InfoRow(stringResource(R.string.label_product), info.product)
             InfoRow(stringResource(R.string.label_display_id), info.display)
+            if (info.incremental.isNotBlank()) InfoRow(stringResource(R.string.label_incremental), info.incremental)
             InfoRow(stringResource(R.string.label_id), info.id)
+            if (info.securityPatch.isNotBlank()) InfoRow(stringResource(R.string.label_security_patch), info.securityPatch)
             InfoRow(stringResource(R.string.label_tags), info.tags)
             InfoRow(stringResource(R.string.label_type), info.type)
             InfoRow(stringResource(R.string.label_baseband), info.baseband)
