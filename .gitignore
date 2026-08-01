@@ -4,6 +4,10 @@
 *.ap_
 *.aab
 
+# Signing keystores (NEVER commit these)
+*.jks
+*.keystore
+
 # Files for the ART/Dalvik VM
 *.dex
 
