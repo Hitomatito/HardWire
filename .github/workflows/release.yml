@@ -4,34 +4,118 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (for example: v1.1.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
-  pull-requests: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
     steps:
-    - uses: actions/checkout@v7
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v5
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-    
-    - name: Build Release APK
-      run: ./gradlew assembleRelease
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v3
-      with:
-        files: app/build/outputs/apk/release/app-release-unsigned.apk
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Validate tag and versionName
+        run: |
+          set -euo pipefail
+          TAG="$RELEASE_TAG"
+          VERSION="${TAG#v}"
+          GRADLE_VERSION="$(grep -m1 'versionName = "' app/build.gradle.kts | sed -E 's/.*versionName = "([^"]+)".*/\1/')"
+          echo "Release tag: $TAG"
+          echo "Gradle versionName: $GRADLE_VERSION"
+          if [ "$VERSION" != "$GRADLE_VERSION" ]; then
+            echo "::error::Tag $TAG does not match versionName $GRADLE_VERSION"
+            exit 1
+          fi
+
+      - name: Decode and validate signing material
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Missing release signing secrets. Configure KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/hardwire-release.jks"
+          chmod 600 "$RUNNER_TEMP/hardwire-release.jks"
+
+      - name: Build signed release APK
+        env:
+          HARDWIRE_KEYSTORE_FILE: ${{ runner.temp }}/hardwire-release.jks
+          HARDWIRE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          HARDWIRE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          HARDWIRE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew clean assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK signature
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::Expected signed APK at $APK"
+            find app/build/outputs/apk/release -maxdepth 1 -type f -print || true
+            exit 1
+          fi
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK_ROOT" ]; then
+            echo "::error::Android SDK root is not available"
+            exit 1
+          fi
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner was not found in the Android SDK"
+            exit 1
+          fi
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p release-assets
+          cp app/build/outputs/apk/release/app-release.apk "release-assets/HardWire-v${VERSION}.apk"
+          cd release-assets
+          sha256sum "HardWire-v${VERSION}.apk" > "HardWire-v${VERSION}.apk.sha256"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: HardWire ${{ env.RELEASE_TAG }}
+          files: |
+            release-assets/HardWire-${{ env.RELEASE_TAG }}.apk
+            release-assets/HardWire-${{ env.RELEASE_TAG }}.apk.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

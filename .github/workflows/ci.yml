@@ -2,35 +2,61 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+
     steps:
-    - uses: actions/checkout@v7
-    
-    - name: Set up JDK 21
-      uses: actions/setup-java@v5
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-    
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v6
-    
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug
-    
-    - name: Run Tests
-      run: ./gradlew testDebugUnitTest
-    
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: app-debug
-        path: app/build/outputs/apk/debug/
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Run lint
+        run: ./gradlew lintDebug --no-daemon
+
+      - name: Build release APK (R8 validation)
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v6
+        if: success()
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/
+
+      - name: Upload test and lint reports
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: ignore

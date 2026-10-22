@@ -1,9 +1,31 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+val keystoreProperties = providers.fileContents(
+    rootProject.layout.projectDirectory.file("keystore.properties")
+).asText.orNull?.let { text ->
+    Properties().apply { load(text.reader()) }
+}
+
+fun signingValue(property: String, environmentVariable: String): String? =
+    keystoreProperties?.getProperty(property)?.takeIf { it.isNotBlank() }
+        ?: providers.environmentVariable(environmentVariable).orNull?.takeIf { it.isNotBlank() }
+
+val releaseKeystoreFile = signingValue("storeFile", "HARDWIRE_KEYSTORE_FILE")
+    ?.let { rootProject.file(it) }
+val releaseStorePassword = signingValue("storePassword", "HARDWIRE_KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingValue("keyAlias", "HARDWIRE_KEY_ALIAS")
+val releaseKeyPassword = signingValue("keyPassword", "HARDWIRE_KEY_PASSWORD")
+val hasReleaseSigning = releaseKeystoreFile?.isFile == true &&
+    !releaseStorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.hitomatito.hardwire"
@@ -13,18 +35,20 @@ android {
         applicationId = "com.hitomatito.hardwire"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("${rootProject.projectDir}/hardwire-release.jks")
-            storePassword = "hardwire123"
-            keyAlias = "hardwire"
-            keyPassword = "hardwire123"
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = releaseKeystoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
@@ -32,7 +56,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -49,6 +73,10 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {

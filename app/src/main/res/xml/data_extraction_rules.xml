@@ -2,8 +2,12 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />
+        <exclude domain="file" path="adbkey" />
+        <exclude domain="file" path="adbkey.pub" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="root" />
+        <exclude domain="file" path="adbkey" />
+        <exclude domain="file" path="adbkey.pub" />
     </device-transfer>
 </data-extraction-rules>
