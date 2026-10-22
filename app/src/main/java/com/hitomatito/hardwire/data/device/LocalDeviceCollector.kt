@@ -481,7 +481,7 @@ private fun collectDisplayInfo(context: Context): DisplayInfo {
     val display = windowManager.defaultDisplay
     val metrics = DisplayMetrics()
     @Suppress("DEPRECATION")
-    display.getMetrics(metrics)
+    display.getRealMetrics(metrics)
 
     val resolution = "${metrics.widthPixels}x${metrics.heightPixels}"
 
