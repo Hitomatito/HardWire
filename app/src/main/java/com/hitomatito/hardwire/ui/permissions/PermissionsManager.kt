@@ -4,12 +4,14 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
+import com.hitomatito.hardwire.R
 
 data class PermissionEntry(
     val permission: String,
-    val label: String,
-    val description: String,
+    @StringRes val labelResId: Int,
+    @StringRes val descriptionResId: Int,
     val required: Boolean = true
 )
 
@@ -17,16 +19,16 @@ fun getRequiredPermissions(): List<PermissionEntry> {
     val list = mutableListOf(
         PermissionEntry(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            "Ubicacion",
-            "Necesaria para escanear dispositivos ADB en la red WiFi"
+            R.string.permission_location_label,
+            R.string.permission_location_description
         )
     )
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         list.add(
             PermissionEntry(
                 Manifest.permission.NEARBY_WIFI_DEVICES,
-                "Dispositivos WiFi cercanos",
-                "Necesaria en Android 13+ para escanear la red WiFi"
+                R.string.permission_nearby_wifi_label,
+                R.string.permission_nearby_wifi_description
             )
         )
     }

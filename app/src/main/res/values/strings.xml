@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">HARDWIRE</string>
     <string name="app_subtitle">Inspector de hardware via ADB</string>
+    <string name="back">Volver</string>
 
     <!-- Connection Screen - Status -->
     <string name="status_connected">Conectado</string>
@@ -15,6 +16,16 @@
     <string name="status_no_connection">Sin conexion</string>
     <string name="device_ready">Dispositivo listo</string>
     <string name="accept_adb_invitation">Acepta la invitacion ADB en el telefono</string>
+
+    <!-- Permissions Screen -->
+    <string name="permission_title">Permisos requeridos</string>
+    <string name="permission_subtitle">HardWire necesita los siguientes permisos para funcionar correctamente.</string>
+    <string name="permission_grant">Conceder permisos</string>
+    <string name="permission_open_settings">Abrir configuracion</string>
+    <string name="permission_location_label">Ubicacion</string>
+    <string name="permission_location_description">Necesaria para escanear dispositivos ADB en la red WiFi</string>
+    <string name="permission_nearby_wifi_label">Dispositivos WiFi cercanos</string>
+    <string name="permission_nearby_wifi_description">Necesaria en Android 13+ para escanear la red WiFi</string>
 
     <!-- Connection Screen - Buttons & Actions -->
     <string name="connect_device">Conectar dispositivo</string>
@@ -122,6 +133,30 @@
     <!-- Info Screen - Battery Card -->
     <string name="label_battery">Bateria</string>
     <string name="label_health">Salud</string>
+    <string name="battery_status_charging">Cargando</string>
+    <string name="battery_status_discharging">Descargando</string>
+    <string name="battery_status_full">Completo</string>
+    <string name="battery_status_not_charging">Sin carga</string>
+    <string name="battery_status_unknown">Desconocido</string>
+    <string name="battery_health_good">Buena</string>
+    <string name="battery_health_overheat">Sobrecalentada</string>
+    <string name="battery_health_dead">Muerta</string>
+    <string name="battery_health_over_voltage">Sobrevoltaje</string>
+    <string name="battery_health_failure">Fallo</string>
+    <string name="battery_health_cold">Fria</string>
+    <string name="battery_health_unknown">Desconocida</string>
+    <string name="battery_plugged_ac">AC</string>
+    <string name="battery_plugged_usb">USB</string>
+    <string name="battery_plugged_wireless">Inalambrico</string>
+    <string name="battery_plugged_none">Ninguno</string>
+    <string name="battery_plugged_unknown">Desconocido</string>
+    <string name="camera_facing_back">Trasera</string>
+    <string name="camera_facing_front">Frontal</string>
+    <string name="camera_facing_external">Externa</string>
+    <string name="camera_facing_unknown">Desconocida</string>
+    <string name="yes">Si</string>
+    <string name="no">No</string>
+    <string name="unknown">Desconocido</string>
     <string name="label_technology">Tecnologia</string>
     <string name="label_temperature">Temperatura</string>
     <string name="label_voltage">Voltaje</string>
@@ -189,6 +224,7 @@
     <string name="compare">Comparar</string>
 
     <!-- History Screen -->
+    <string name="history_label">Historial</string>
     <string name="no_history">Sin historial</string>
 
     <!-- Permissions Screen -->

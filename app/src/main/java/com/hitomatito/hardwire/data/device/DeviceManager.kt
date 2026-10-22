@@ -104,8 +104,17 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             setState(LOCAL_ID, ConnectionState.GatheringData)
             val info = collectLocalDeviceInfo(context)
             setInfo(LOCAL_ID, info)
+            if (isInfoValid(info)) {
+                saveInfo(LOCAL_ID, info)
+                historyRepository?.let { repo ->
+                    if (repo.getHistory(LOCAL_ID, 1).isEmpty()) {
+                        repo.saveSnapshot(LOCAL_ID, info)
+                    }
+                }
+            }
             setState(LOCAL_ID, ConnectionState.Connected)
             _updatedAt.value = _updatedAt.value.toMutableMap().apply { put(LOCAL_ID, System.currentTimeMillis()) }
+            updateWidgetFor(LOCAL_ID)
             Log.d("HW:DevMgr", "[init] info local recolectada OK")
         }
 
@@ -767,6 +776,12 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
         val bulk = collectBulk(id)
 
         val getprop = bulk.getprop
+        val props = if (getprop.isNotBlank()) CommandParser.parseSystemProperties(getprop) else emptyMap()
+        val socDisplayName = listOf(
+            props["ro.infinity.soc"],
+            props["ro.soc.name"],
+            props["ro.vendor.soc.name"]
+        ).firstOrNull { !it.isNullOrBlank() }.orEmpty()
         val socModel = bulk.socModel.trim().fallback(old?.cpu?.socName)
         val socManufacturer = bulk.socManufacturer.trim().fallback(old?.cpu?.socManufacturer)
         val socChipname = bulk.socChipname.trim().fallback(old?.cpu?.hardware)
@@ -782,8 +797,8 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             // ro.board.platform (e.g. "lahaina") may not match SOC_NAMES, but
             // ro.soc.model (e.g. "SM8350") will
             val candidates = listOf(
-                bulk.socPlatform.trim(),
                 bulk.socModel.trim(),
+                bulk.socPlatform.trim(),
                 bulk.socChipname.trim(),
                 bulk.socVendorModel.trim()
             ).filter { it.isNotBlank() }.distinct()
@@ -814,7 +829,8 @@ class DeviceManager(private val context: Context, private val chipsetRepository:
             cpu = if (bulk.cpuInfo.isNotBlank())
                 CommandParser.parseCpuInfo(
                     bulk.cpuInfo, socModel, socManufacturer, socChipname, socPlatform,
-                    socVendorModel, soc0Family, soc0Machine, chipsetInfo = chipsetInfo, cpuAbi = cpuAbi
+                    socVendorModel, soc0Family, soc0Machine, chipsetInfo = chipsetInfo,
+                    cpuAbi = cpuAbi, socDisplayName = socDisplayName
                 ) else old?.cpu ?: CpuInfo(),
             memory = if (bulk.memInfo.isNotBlank()) CommandParser.parseMemoryInfo(bulk.memInfo) else old?.memory ?: MemoryInfo(),
             battery = if (bulk.battery.isNotBlank()) CommandParser.parseBatteryInfo(bulk.battery) else old?.battery ?: BatteryInfo(),
