@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.DeviceInfo
+import com.hitomatito.hardwire.ui.batteryStatusText
 import com.hitomatito.hardwire.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -41,7 +42,10 @@ fun HistoryScreen(
                 title = { Text(deviceName, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -171,7 +175,7 @@ private fun HistoryCard(snapshot: HistorySnapshot) {
                 if (info.battery.status.isNotBlank()) {
                     MetricChip(
                         label = stringResource(R.string.label_status_state),
-                        value = info.battery.status,
+                        value = batteryStatusText(info.battery.status),
                         modifier = Modifier.weight(1f)
                     )
                 }

@@ -185,6 +185,46 @@ object CommandParser {
         return SOC_NAMES[codename.lowercase(Locale.US)]
     }
 
+    /**
+     * Resolves a commercial SoC name using the most specific identifier first.
+     *
+     * `ro.soc.model` is usually more precise than `ro.board.platform`; for
+     * example, some Xiaomi devices report `board.platform=sm6150` while the
+     * actual SoC is `SM7150`.
+     */
+    fun resolveSocCommercialName(
+        socModel: String,
+        socPlatform: String,
+        socChipname: String,
+        socMachine: String = ""
+    ): String? {
+        val candidates = listOf(socModel, socPlatform, socMachine, socChipname)
+        return candidates.asSequence()
+            .map { it.trim().lowercase(Locale.US) }
+            .filter { it.isNotBlank() }
+            .mapNotNull(::lookupSocCommercialName)
+            .firstOrNull()
+    }
+
+    fun normalizeSocDisplayName(value: String): String {
+        val trimmed = value.trim()
+        val vendorPrefix = listOf("Qualcomm ", "MediaTek ", "Samsung ", "HiSilicon ", "Unisoc ")
+            .firstOrNull { trimmed.startsWith(it, ignoreCase = true) }
+        return if (vendorPrefix != null) trimmed.substring(vendorPrefix.length).trim() else trimmed
+    }
+
+    fun isCommercialSocName(value: String): Boolean {
+        val normalized = normalizeSocDisplayName(value).lowercase(Locale.US)
+        return normalized.startsWith("snapdragon") ||
+            normalized.startsWith("dimensity") ||
+            normalized.startsWith("helio") ||
+            normalized.startsWith("exynos") ||
+            normalized.startsWith("kirin") ||
+            normalized.startsWith("unisoc")
+    }
+
+    fun parseSystemProperties(output: String): Map<String, String> = parseGetProp(output)
+
     fun formatBytes(kb: Long): String {
         return when {
             kb >= 1_048_576 -> String.format(Locale.US, "%.1f GB", kb / 1_048_576.0)
@@ -215,7 +255,6 @@ object CommandParser {
         imeis: List<String> = emptyList()
     ): GeneralInfo {
         val props = parseGetProp(getpropOutput)
-        val socName = resolveSocName(socModel, socManufacturer, socChipname, socPlatform, socVendorModel, soc0Family, soc0Machine)
 
         // Custom OS detection
         val customOs = buildString {
@@ -279,7 +318,7 @@ object CommandParser {
         )
     }
 
-    fun parseCpuInfo(cpuOutput: String, socModel: String, socManufacturer: String, socChipname: String, socPlatform: String, socVendorModel: String, soc0Family: String = "", soc0Machine: String = "", chipsetInfo: ChipsetInfo? = null, cpuAbi: String = ""): CpuInfo {
+    fun parseCpuInfo(cpuOutput: String, socModel: String, socManufacturer: String, socChipname: String, socPlatform: String, socVendorModel: String, soc0Family: String = "", soc0Machine: String = "", chipsetInfo: ChipsetInfo? = null, cpuAbi: String = "", socDisplayName: String = ""): CpuInfo {
         val lines = cpuOutput.lines()
         var processor = ""
         var hardware = ""
@@ -326,16 +365,24 @@ object CommandParser {
             }
         }
 
-        val socName = if (chipsetInfo != null && chipsetInfo.chipset.isNotBlank()) {
+        val displaySocName = normalizeSocDisplayName(socDisplayName)
+        val manufacturerName = chipsetInfo?.brand?.takeIf { it.isNotBlank() }
+            ?: resolveSocManufacturer(socManufacturer)
+        val socName = if (displaySocName.isNotBlank() && isCommercialSocName(displaySocName)) {
+            if (manufacturerName.isNotBlank()) "$manufacturerName $displaySocName" else displaySocName
+        } else if (chipsetInfo != null && chipsetInfo.chipset.isNotBlank()) {
             if (chipsetInfo.brand.isNotBlank()) "${chipsetInfo.brand} ${chipsetInfo.chipset}" else chipsetInfo.chipset
         } else {
-            resolveSocName(socModel, socManufacturer, socChipname, socPlatform, socVendorModel, soc0Family, soc0Machine)
+            resolveSocName(
+                socModel, socManufacturer, socChipname, socPlatform, socVendorModel,
+                soc0Family, soc0Machine, socDisplayName
+            )
         }
         val displayHardware = hardware.ifBlank { socName }
 
         return CpuInfo(
             socName = socName,
-            socManufacturer = chipsetInfo?.brand?.takeIf { it.isNotBlank() } ?: socManufacturer.trim(),
+            socManufacturer = manufacturerName,
             processor = processor,
             hardware = displayHardware,
             features = features,
@@ -831,7 +878,8 @@ object CommandParser {
         socPlatform: String,
         socVendorModel: String,
         soc0Family: String = "",
-        soc0Machine: String = ""
+        soc0Machine: String = "",
+        socDisplayName: String = ""
     ): String {
         val model = socModel.trim().ifEmpty { socVendorModel.trim() }
         val manufacturer = resolveSocManufacturer(socManufacturer.trim())
@@ -839,14 +887,16 @@ object CommandParser {
         val platform = socPlatform.trim().lowercase(Locale.US)
         val family = soc0Family.trim()
         val machine = soc0Machine.trim().lowercase(Locale.US)
+        val displayName = normalizeSocDisplayName(socDisplayName)
 
-        // Try database lookup with all available identifiers
-        // Priority: platform -> socModel (SM8350) -> machine -> chipname
-        // socModel is often the best match (e.g. "SM8350" -> "Snapdragon 888")
-        val commercialName = lookupSocCommercialName(platform)
-            ?: lookupSocCommercialName(model.lowercase(Locale.US))
-            ?: lookupSocCommercialName(machine)
-            ?: lookupSocCommercialName(chipname)
+        // Prefer an explicit human-readable name from the ROM, then the most
+        // specific codename. ro.board.platform is only a fallback because some
+        // devices report a misleading value there.
+        val commercialName = if (displayName.isNotBlank() && isCommercialSocName(displayName)) {
+            displayName
+        } else {
+            resolveSocCommercialName(model, platform, chipname, machine)
+        }
 
         if (commercialName != null) {
             val vendor = when {

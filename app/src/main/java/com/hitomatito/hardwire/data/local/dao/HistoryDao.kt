@@ -13,6 +13,12 @@ interface HistoryDao {
     @Insert
     suspend fun insertSnapshot(snapshot: DeviceHistoryEntity)
 
+    @Query(
+        "DELETE FROM device_history WHERE deviceId = :deviceId AND id NOT IN " +
+            "(SELECT id FROM device_history WHERE deviceId = :deviceId ORDER BY timestamp DESC LIMIT :keep)"
+    )
+    suspend fun pruneHistory(deviceId: String, keep: Int)
+
     @Query("DELETE FROM device_history WHERE deviceId = :deviceId")
     suspend fun deleteHistory(deviceId: String)
 }

@@ -33,10 +33,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.data.model.*
+import com.hitomatito.hardwire.ui.batteryHealthText
+import com.hitomatito.hardwire.ui.batteryPluggedText
+import com.hitomatito.hardwire.ui.batteryStatusText
+import com.hitomatito.hardwire.ui.cameraFacingText
+import com.hitomatito.hardwire.ui.cameraFlashText
 import com.hitomatito.hardwire.ui.components.HardwireTopBar
 import com.hitomatito.hardwire.ui.theme.AccentBlue
 import com.hitomatito.hardwire.ui.theme.AccentGreen
@@ -118,7 +124,7 @@ fun InfoScreen(
                 actions = {
                     if (onViewHistory != null) {
                         IconButton(onClick = onViewHistory) {
-                            Icon(Icons.Filled.History, stringResource(R.string.theme_label))
+                            Icon(Icons.Filled.History, stringResource(R.string.history_label))
                         }
                     }
                     if (onShare != null) {
@@ -168,6 +174,47 @@ fun InfoScreen(
                         )
                     }
                 }
+            } else if (!hasData) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            if (errorMessage != null) Icons.Filled.Error else Icons.Filled.CloudOff,
+                            contentDescription = null,
+                            tint = if (errorMessage != null) AccentRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            if (errorMessage != null) stringResource(R.string.connection_error)
+                            else stringResource(R.string.no_data),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (errorMessage != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                errorMessage,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(onClick = onRefresh) {
+                            Icon(
+                                Icons.Filled.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -214,7 +261,7 @@ fun InfoScreen(
                                             stringResource(R.string.disconnect_usb_hint)
                                         else
                                             stringResource(R.string.connected_via_network, deviceIp),
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -243,7 +290,7 @@ fun InfoScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(stringResource(R.string.connection_error), color = AccentRed, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    Text(errorMessage ?: "", color = Color.White, fontSize = 12.sp)
+                                    Text(errorMessage ?: "", color = MaterialTheme.colorScheme.onErrorContainer, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -609,11 +656,16 @@ fun BatteryCard(info: BatteryInfo) {
                     Text(stringResource(R.string.label_battery), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(info.status, color = when (info.status) {
-                        "Cargando", "Charging" -> AccentGreen
-                        "Completo", "Full" -> AccentCyan
-                        else -> Color.White
-                    }, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        batteryStatusText(info.status),
+                        color = when (info.status.trim().lowercase(java.util.Locale.ROOT)) {
+                            "cargando", "charging" -> AccentGreen
+                            "completo", "full" -> AccentCyan
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -623,11 +675,11 @@ fun BatteryCard(info: BatteryInfo) {
                 else -> AccentRed
             })
             Spacer(modifier = Modifier.height(8.dp))
-            InfoRow(stringResource(R.string.label_health), info.health)
+            InfoRow(stringResource(R.string.label_health), batteryHealthText(info.health))
             InfoRow(stringResource(R.string.label_technology), info.technology)
             InfoRow(stringResource(R.string.label_temperature), "${info.temperature}")
             InfoRow(stringResource(R.string.label_voltage), info.voltage)
-            InfoRow(stringResource(R.string.label_plugged), info.plugged)
+            InfoRow(stringResource(R.string.label_plugged), batteryPluggedText(info.plugged))
         }
     }
 }
@@ -715,8 +767,8 @@ fun CameraCard(info: CameraInfo) {
     CardContainer {
         Column(modifier = Modifier.padding(16.dp)) {
             val title = buildString {
-                append(stringResource(R.string.camera_id, info.id.toString()))
-                if (info.facing.isNotBlank()) append(" - ${info.facing}")
+                append(stringResource(R.string.camera_id, info.id))
+                if (info.facing.isNotBlank()) append(" - ${cameraFacingText(info.facing)}")
             }
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
@@ -726,7 +778,7 @@ fun CameraCard(info: CameraInfo) {
             if (info.aperture.isNotBlank()) InfoRow(stringResource(R.string.label_aperture), info.aperture)
             if (info.sensorSize.isNotBlank()) InfoRow(stringResource(R.string.label_sensor_size), info.sensorSize)
             if (info.hardwareLevel.isNotBlank()) InfoRow(stringResource(R.string.label_hardware_level), info.hardwareLevel)
-            if (info.flash.isNotBlank()) InfoRow(stringResource(R.string.label_flash), info.flash)
+            if (info.flash.isNotBlank()) InfoRow(stringResource(R.string.label_flash), cameraFlashText(info.flash))
         }
     }
 }

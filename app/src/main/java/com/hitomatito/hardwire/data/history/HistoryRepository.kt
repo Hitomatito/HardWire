@@ -17,6 +17,7 @@ class HistoryRepository(
                 json = json
             )
         )
+        historyDao.pruneHistory(deviceId, 50)
     }
 
     suspend fun getHistory(deviceId: String, limit: Int = 20): List<Pair<Long, DeviceInfo>> {
