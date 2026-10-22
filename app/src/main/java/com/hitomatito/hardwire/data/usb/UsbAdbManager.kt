@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.Socket
 
 private fun makeBase64(): AdbBase64 = object : AdbBase64 {
@@ -280,7 +281,13 @@ class UsbAdbManager(private val context: Context) {
         Log.d("HW:Usb", "[openTcp] abriendo socket TCP $host:$port")
         // NO cerrar adbConnection aqui: puede ser una conexion USB activa.
         // DeviceManager gestiona el lifecycle de las conexiones en su mapa.
-        val socket = Socket(host, port)
+        val socket = Socket()
+        try {
+            socket.connect(InetSocketAddress(host, port), 5000)
+        } catch (e: Exception) {
+            try { socket.close() } catch (_: Exception) {}
+            throw e
+        }
         socket.soTimeout = 0
         Log.d("HW:Usb", "[openTcp] socket conectado a $host:$port")
         val channel = TcpChannel(socket)
@@ -291,6 +298,7 @@ class UsbAdbManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e("HW:Usb", "[openTcp] connect() fallo para $host:$port", e)
             try { adbConn.close() } catch (_: Exception) {}
+            try { socket.close() } catch (_: Exception) {}
             throw e
         }
         Log.d("HW:Usb", "[openTcp] ADB conectado a $host:$port")

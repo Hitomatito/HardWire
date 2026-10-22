@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">HardWire</title>
+  <desc id="desc">HardWire Android hardware inspector for local devices and ADB targets</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101418"/>
+      <stop offset="1" stop-color="#1c252b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff8a3d"/>
+      <stop offset="1" stop-color="#ffb86b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="24" fill="url(#bg)"/>
+  <circle cx="1040" cy="60" r="180" fill="#ff8a3d" opacity="0.08"/>
+  <circle cx="1100" cy="250" r="140" fill="#ffb86b" opacity="0.06"/>
+  <g transform="translate(78 66)">
+    <rect x="0" y="0" width="92" height="168" rx="18" fill="#0b0e10" stroke="#ff8a3d" stroke-width="3"/>
+    <rect x="9" y="14" width="74" height="130" rx="9" fill="#182228"/>
+    <circle cx="46" cy="153" r="5" fill="#ff8a3d"/>
+    <path d="M23 42h46M23 60h46M23 78h30M23 96h46M23 114h38" stroke="#ffb86b" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <text x="210" y="132" fill="#ffffff" font-family="Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="-2">HardWire</text>
+  <text x="214" y="180" fill="#b8c4cc" font-family="Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="25">Android hardware inspector for local devices and ADB targets</text>
+  <rect x="214" y="208" width="170" height="6" rx="3" fill="url(#accent)"/>
+  <text x="214" y="246" fill="#ffb86b" font-family="Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="18" letter-spacing="2">LOCAL · USB ADB · WI-FI ADB</text>
+</svg>

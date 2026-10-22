@@ -3,10 +3,15 @@
 *.aar
 *.ap_
 *.aab
+release-assets/
 
-# Signing keystores (NEVER commit these)
+# Signing keystores and secrets (NEVER commit these)
 *.jks
 *.keystore
+*.b64
+keystore.properties
+.env
+signing/
 
 # Files for the ART/Dalvik VM
 *.dex
@@ -49,13 +54,6 @@ captures/
 
 # Google Services (Uncomment if using Firebase)
 # google-services.json
-
-# Signing files
-*.jks
-*.keystore
-
-# Keystore passwords (Uncomment if not using env vars)
-# keystore.properties
 
 # Android Profiling
 *.hprof

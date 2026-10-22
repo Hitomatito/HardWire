@@ -14,7 +14,7 @@ import com.hitomatito.hardwire.data.local.entity.ManagedDeviceEntity
 @Database(
     entities = [ManagedDeviceEntity::class, DeviceInfoEntity::class, DeviceHistoryEntity::class],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class HardwireDatabase : RoomDatabase() {
     abstract fun deviceDao(): DeviceDao
@@ -31,7 +31,7 @@ abstract class HardwireDatabase : RoomDatabase() {
                     context.applicationContext,
                     HardwireDatabase::class.java,
                     "hardwire_database"
-                ).fallbackToDestructiveMigration(dropAllTables = true).build()
+                ).build()
                 INSTANCE = instance
                 instance
             }

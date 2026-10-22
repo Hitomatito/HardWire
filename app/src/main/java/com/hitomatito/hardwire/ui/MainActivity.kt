@@ -82,6 +82,7 @@ private fun HardwireApp(
     onThemeModeChange: (com.hitomatito.hardwire.ui.theme.ThemeMode) -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val reportCopiedMessage = stringResource(R.string.report_copied)
     var permissionsGranted by remember { mutableStateOf(allPermissionsGranted(context)) }
 
     if (!permissionsGranted) {
@@ -240,7 +241,7 @@ private fun HardwireApp(
                         onCopyReport = if (currentDevice != null && currentInfo != null) {
                             {
                                 DeviceReportExporter.copyToClipboard(context, currentDevice, currentInfo)
-                                android.widget.Toast.makeText(context, context.getString(R.string.report_copied), android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, reportCopiedMessage, android.widget.Toast.LENGTH_SHORT).show()
                             }
                         } else null,
                         onViewHistory = if (currentDevice != null) {

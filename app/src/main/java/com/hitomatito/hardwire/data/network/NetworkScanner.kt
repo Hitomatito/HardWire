@@ -15,6 +15,8 @@ import java.net.Socket
 
 object NetworkScanner {
 
+    private const val MAX_SCAN_HOSTS = 1024
+
     data class WifiInfo(val ip: String, val prefixLength: Int)
 
     fun getLocalNetwork(context: Context): WifiInfo? {
@@ -33,32 +35,34 @@ object NetworkScanner {
     }
 
     fun calculateRange(ip: String, prefixLength: Int): List<String> {
-        val parts = ip.split(".").map { it.toIntOrNull() ?: 0 }
-        if (parts.size != 4 || prefixLength <= 0 || prefixLength >= 32) return emptyList()
+        val parts = ip.split(".").map { it.toIntOrNull() ?: return emptyList() }
+        if (parts.size != 4 || parts.any { it !in 0..255 }) return emptyList()
+        if (prefixLength !in 1..30) return emptyList()
 
-        val ipInt = (parts[0] shl 24) or (parts[1] shl 16) or (parts[2] shl 8) or parts[3]
-        val maskLong = (0xFFFFFFFFL shl (32 - prefixLength)) and 0xFFFFFFFFL
-        val maskInt = maskLong.toInt()
-        val netInt = ipInt and maskInt
-        val broadcastInt = netInt or maskInt.inv()
-
-        val netParts = intToParts(netInt)
-        val broadcastParts = intToParts(broadcastInt)
-
-        val results = mutableListOf<String>()
-        for (i in (netParts[3] + 1) until broadcastParts[3]) {
-            results.add("${netParts[0]}.${netParts[1]}.${netParts[2]}.$i")
+        var ipLong = 0L
+        for (part in parts) {
+            ipLong = (ipLong shl 8) or part.toLong()
         }
-        return results
+
+        val mask = (0xFFFFFFFFL shl (32 - prefixLength)) and 0xFFFFFFFFL
+        val network = ipLong and mask
+        val broadcast = network or (mask.inv() and 0xFFFFFFFFL)
+        val first = network + 1
+        val last = broadcast - 1
+
+        if (first > last) return emptyList()
+        if (last - first + 1 > MAX_SCAN_HOSTS) return emptyList()
+
+        return (first..last).map(::longToIp)
     }
 
-    private fun intToParts(value: Int): List<Int> {
+    private fun longToIp(value: Long): String {
         return listOf(
             (value shr 24) and 0xFF,
             (value shr 16) and 0xFF,
             (value shr 8) and 0xFF,
             value and 0xFF
-        )
+        ).joinToString(".")
     }
 
     suspend fun scanAdbDevices(context: Context, port: Int = 5555): List<String> = withContext(Dispatchers.IO) {

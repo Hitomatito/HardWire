@@ -4,11 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.core.content.edit
 import com.hitomatito.hardwire.data.command.CommandParser
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.Locale
 
 class ChipsetRepository(context: Context) {
@@ -21,24 +17,18 @@ class ChipsetRepository(context: Context) {
 
         val cached = getFromCache(key)
         if (cached != null) {
-            Log.d("Hardwire", "[ChipsetRepo] Cache hit: $key -> ${cached.chipset}")
+            Log.d("HardWire", "[ChipsetRepo] Cache hit: $key -> ${cached.chipset}")
             return cached
         }
 
-        val apiResult = fetchFromApi(key)
-        if (apiResult != null) {
-            saveToCache(key, apiResult)
-            Log.d("Hardwire", "[ChipsetRepo] API hit: $key -> ${apiResult.brand} ${apiResult.chipset} gpu=${apiResult.gpu}")
-            return apiResult
+        val local = getFromLocalDatabase(key)
+        if (local != null) {
+            saveToCache(key, local)
+            Log.d("HardWire", "[ChipsetRepo] Local hit: $key -> ${local.brand} ${local.chipset}")
+            return local
         }
 
-        val fallback = getFromLocalDatabase(key)
-        if (fallback != null) {
-            Log.d("Hardwire", "[ChipsetRepo] Local fallback: $key -> ${fallback.brand} ${fallback.chipset}")
-            return fallback
-        }
-
-        Log.d("Hardwire", "[ChipsetRepo] Not found: $key")
+        Log.d("HardWire", "[ChipsetRepo] Not found locally: $key")
         return ChipsetInfo()
     }
 
@@ -65,56 +55,6 @@ class ChipsetRepository(context: Context) {
             put("gpu", info.gpu)
         }
         prefs.edit { putString(key, obj.toString()) }
-    }
-
-    private suspend fun fetchFromApi(codename: String): ChipsetInfo? {
-        val endpoint = getApiEndpoint(codename) ?: return null
-        val urlStr = "https://tolepcoy.pages.dev/$endpoint?code=$codename"
-
-        return withContext(Dispatchers.IO) {
-            try {
-                val url = URL(urlStr)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-                conn.requestMethod = "GET"
-
-                if (conn.responseCode != 200) {
-                    conn.disconnect()
-                    return@withContext null
-                }
-
-                val body = conn.inputStream.bufferedReader().readText()
-                conn.disconnect()
-
-                val json = JSONObject(body)
-                if (json.has("error")) return@withContext null
-
-                val chipset = json.optString("chipset", "")
-                if (chipset.isBlank()) return@withContext null
-
-                ChipsetInfo(
-                    brand = json.optString("brand", ""),
-                    chipset = chipset,
-                    cpu = json.optString("cpu", ""),
-                    gpu = json.optString("gpu", "")
-                )
-            } catch (e: Exception) {
-                Log.e("Hardwire", "[ChipsetRepo] API error: ${e.message}")
-                null
-            }
-        }
-    }
-
-    private fun getApiEndpoint(codename: String): String? {
-        val lower = codename.lowercase(Locale.US)
-        return when {
-            lower.startsWith("mt") -> "tolepcoy_mediatek"
-            lower.startsWith("msm") || lower.startsWith("sm") || lower.startsWith("sd") ||
-            lower.startsWith("qcs") || lower.startsWith("qcm") -> "tolepcoy_qualcomm"
-            lower.startsWith("exynos") || lower.startsWith("s5e") || lower.startsWith("s5p") -> "tolepcoy_samsung"
-            else -> null
-        }
     }
 
     private fun getFromLocalDatabase(codename: String): ChipsetInfo? {
