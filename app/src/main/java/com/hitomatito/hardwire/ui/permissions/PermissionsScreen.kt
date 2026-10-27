@@ -26,8 +26,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.hitomatito.hardwire.R
 import com.hitomatito.hardwire.ui.theme.AccentAmber
 import com.hitomatito.hardwire.ui.theme.StatusConnected
 
@@ -88,14 +90,14 @@ fun PermissionsScreen(
         Spacer(modifier = Modifier.height(28.dp))
 
         Text(
-            "Permisos requeridos",
+            stringResource(R.string.permission_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "Hardwire necesita los siguientes permisos para funcionar correctamente.",
+            stringResource(R.string.permission_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -142,12 +144,12 @@ fun PermissionsScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                entry.label,
+                                stringResource(entry.labelResId),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                entry.description,
+                                stringResource(entry.descriptionResId),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -176,7 +178,7 @@ fun PermissionsScreen(
             )
         ) {
             Text(
-                "Conceder permisos",
+                stringResource(R.string.permission_grant),
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -190,7 +192,7 @@ fun PermissionsScreen(
                 context.startActivity(intent)
             }) {
                 Text(
-                    "Abrir configuracion",
+                    stringResource(R.string.permission_open_settings),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

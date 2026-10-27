@@ -221,6 +221,47 @@ class CommandParserTest {
         assertEquals("1x3.2 GHz Cortex-X3 + 2x2.8 GHz Cortex-A715 + 2x2.8 GHz Cortex-A710 + 3x2.0 GHz Cortex-A510", result.cpuConfig)
     }
 
+    @Test
+    fun `parseCpuInfo prefers soc model over board platform`() {
+        val result = CommandParser.parseCpuInfo(
+            cpuOutput = "processor\t: 0\nHardware\t: Qualcomm Technologies, Inc SDMMAGPIE",
+            socModel = "SM7150",
+            socManufacturer = "QTI",
+            socChipname = "",
+            socPlatform = "sm6150",
+            socVendorModel = ""
+        )
+
+        assertEquals("Qualcomm Snapdragon 730", result.socName)
+    }
+
+    @Test
+    fun `parseCpuInfo uses a human readable soc name from the rom`() {
+        val result = CommandParser.parseCpuInfo(
+            cpuOutput = "processor\t: 0\nHardware\t: Qualcomm Technologies, Inc SDMMAGPIE",
+            socModel = "SM7150",
+            socManufacturer = "QTI",
+            socChipname = "",
+            socPlatform = "sm6150",
+            socVendorModel = "",
+            socDisplayName = "Snapdragon 732G"
+        )
+
+        assertEquals("Qualcomm Snapdragon 732G", result.socName)
+    }
+
+    @Test
+    fun `resolveSocCommercialName prioritizes the most specific identifier`() {
+        assertEquals(
+            "Snapdragon 730",
+            CommandParser.resolveSocCommercialName("SM7150", "sm6150", "")
+        )
+        assertEquals(
+            "Snapdragon 675",
+            CommandParser.resolveSocCommercialName("", "sm6150", "")
+        )
+    }
+
     // ── parseMemoryInfo ───────────────────────────────────────────────────────
 
     @Test

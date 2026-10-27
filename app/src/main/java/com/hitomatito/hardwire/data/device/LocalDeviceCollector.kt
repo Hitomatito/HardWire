@@ -147,7 +147,9 @@ private fun collectCpuInfo(): CpuInfo {
     var bogoMips = ""
     var cpuConfig = StringBuilder()
     var processorCount = 0
+    var currentProcessor = -1
     val cpuParts = mutableListOf<String>()
+    val cpuIndices = mutableListOf<Int>()
     val cpuImplementers = mutableListOf<String>()
 
     try {
@@ -159,6 +161,7 @@ private fun collectCpuInfo(): CpuInfo {
                 when {
                     trimmed.startsWith("processor", ignoreCase = true)
                             && trimmed.substringAfter(":").trim().toIntOrNull() != null -> {
+                        currentProcessor = trimmed.substringAfter(":").trim().toInt()
                         processorCount++
                     }
                     trimmed.startsWith("Processor") && !trimmed.startsWith("processor") -> {
@@ -176,6 +179,7 @@ private fun collectCpuInfo(): CpuInfo {
                     }
                     trimmed.startsWith("CPU part") -> {
                         cpuParts.add(trimmed.substringAfter(":").trim())
+                        cpuIndices.add(currentProcessor)
                     }
                 }
             }
@@ -195,10 +199,17 @@ private fun collectCpuInfo(): CpuInfo {
     val architectureFormatted = formatArchitecture(architecture)
 
     // CPU frequencies
-    val maxFreqKhz = readFileTrimmed("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq")
-        .trim().toLongOrNull() ?: 0L
-    val minFreqKhz = readFileTrimmed("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq")
-        .trim().toLongOrNull() ?: 0L
+    val cpuCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+    val cpuMaxFreqs = (0 until cpuCount).map { index ->
+        readFileTrimmed("/sys/devices/system/cpu/cpu$index/cpufreq/cpuinfo_max_freq")
+            .toLongOrNull()?.takeIf { it > 0 } ?: 0L
+    }
+    val cpuMinFreqs = (0 until cpuCount).map { index ->
+        readFileTrimmed("/sys/devices/system/cpu/cpu$index/cpufreq/cpuinfo_min_freq")
+            .toLongOrNull()?.takeIf { it > 0 } ?: 0L
+    }
+    val maxFreqKhz = cpuMaxFreqs.maxOrNull() ?: 0L
+    val minFreqKhz = cpuMinFreqs.filter { it > 0 }.minOrNull() ?: 0L
 
     val maxFrequency = formatFrequency(maxFreqKhz)
     val minFrequency = formatFrequency(minFreqKhz)
@@ -209,6 +220,11 @@ private fun collectCpuInfo(): CpuInfo {
     val socPlatform = getSystemProperty("ro.board.platform")
     val socChipname = getSystemProperty("ro.hardware.chipname")
     val socVendorModel = getSystemProperty("ro.vendor.soc.model")
+    val socDisplayName = listOf("ro.infinity.soc", "ro.soc.name", "ro.vendor.soc.name")
+        .asSequence()
+        .map(::getSystemProperty)
+        .firstOrNull { it.isNotBlank() }
+        .orEmpty()
 
     val soc0Family = readFileTrimmed("/sys/devices/soc0/family")
     val soc0Machine = readFileTrimmed("/sys/devices/soc0/machine")
@@ -216,13 +232,13 @@ private fun collectCpuInfo(): CpuInfo {
     // API 31+ Build.SOC_MODEL / Build.SOC_MANUFACTURER
     val buildSocModel = try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Build.SOC_MODEL?.takeIf { it.isNotBlank() } ?: ""
+            Build.SOC_MODEL.takeIf { it.isNotBlank() } ?: ""
         } else ""
     } catch (e: Exception) { "" }
 
     val buildSocManufacturer = try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Build.SOC_MANUFACTURER?.takeIf { it.isNotBlank() } ?: ""
+            Build.SOC_MANUFACTURER.takeIf { it.isNotBlank() } ?: ""
         } else ""
     } catch (e: Exception) { "" }
 
@@ -230,10 +246,11 @@ private fun collectCpuInfo(): CpuInfo {
     val model = socModel.trim().ifBlank { socVendorModel.trim() }.ifBlank { buildSocModel }
     val machine = soc0Machine.trim().lowercase(Locale.US)
 
-    val commercialName = CommandParser.lookupSocCommercialName(platform)
-        ?: CommandParser.lookupSocCommercialName(model.lowercase(Locale.US))
-        ?: CommandParser.lookupSocCommercialName(machine)
-        ?: CommandParser.lookupSocCommercialName(socChipname.trim().lowercase(Locale.US))
+    val commercialName = if (socDisplayName.isNotBlank() && CommandParser.isCommercialSocName(socDisplayName)) {
+        CommandParser.normalizeSocDisplayName(socDisplayName)
+    } else {
+        CommandParser.resolveSocCommercialName(model, platform, socChipname, machine)
+    }
 
     val socName: String
     val socManufacturer: String
@@ -266,7 +283,7 @@ private fun collectCpuInfo(): CpuInfo {
         }
     }
 
-    val clusterInfo = buildClusterInfo(cpuParts, cpuImplementers)
+    val clusterInfo = buildClusterInfo(cpuParts, cpuImplementers, socName, cpuMaxFreqs, cpuIndices)
     val formattedProcessor = if (socName.isNotBlank()) {
         "$socName (${cpuParts.size} cores)"
     } else {
@@ -464,7 +481,7 @@ private fun collectDisplayInfo(context: Context): DisplayInfo {
     val display = windowManager.defaultDisplay
     val metrics = DisplayMetrics()
     @Suppress("DEPRECATION")
-    display.getMetrics(metrics)
+    display.getRealMetrics(metrics)
 
     val resolution = "${metrics.widthPixels}x${metrics.heightPixels}"
 
@@ -481,13 +498,18 @@ private fun collectDisplayInfo(context: Context): DisplayInfo {
 
     val refreshRate = "${display.refreshRate.toInt()} Hz"
 
-    // Physical diagonal size in inches
+    // Physical diagonal size in inches. xdpi/ydpi are estimates, so fall back
+    // to the logical density when the device does not expose them.
     val physicalSize = try {
-        if (metrics.densityDpi > 0) {
-            val widthInches = metrics.widthPixels.toDouble() / metrics.densityDpi * 25.4
-            val heightInches = metrics.heightPixels.toDouble() / metrics.densityDpi * 25.4
+        val xDpi = metrics.xdpi.takeIf { it > 0f } ?: metrics.densityDpi.toFloat()
+        val yDpi = metrics.ydpi.takeIf { it > 0f } ?: metrics.densityDpi.toFloat()
+        if (xDpi > 0f && yDpi > 0f) {
+            val widthInches = metrics.widthPixels.toDouble() / xDpi
+            val heightInches = metrics.heightPixels.toDouble() / yDpi
             val diagonalInches = sqrt(widthInches * widthInches + heightInches * heightInches)
-            String.format(Locale.US, "%.2f\"", diagonalInches)
+            if (diagonalInches in 1.0..30.0) {
+                String.format(Locale.US, "%.2f\"", diagonalInches)
+            } else ""
         } else ""
     } catch (e: Exception) { "" }
 
@@ -537,6 +559,21 @@ private fun collectDisplayInfo(context: Context): DisplayInfo {
     )
 }
 
+private fun isRelevantStorageMount(mountPoint: String): Boolean {
+    val normalized = mountPoint.trimEnd('/')
+    return normalized in setOf(
+        "/data",
+        "/system",
+        "/cache",
+        "/vendor",
+        "/product",
+        "/system_ext",
+        "/odm",
+        "/metadata",
+        "/persist"
+    ) || (normalized.startsWith("/storage/") && !normalized.startsWith("/storage/emulated"))
+}
+
 private fun collectStorageInfo(): StorageInfo {
     val partitions = mutableListOf<String>()
 
@@ -549,8 +586,7 @@ private fun collectStorageInfo(): StorageInfo {
                 val parts = line.split(" ")
                 if (parts.size >= 4) {
                     val mountPoint = parts[4]
-                    if (mountPoint.startsWith("/data") || mountPoint == "/system" ||
-                        mountPoint == "/cache" || mountPoint == "/vendor") {
+                    if (isRelevantStorageMount(mountPoint)) {
                         if (mountPoint !in partitions) partitions.add(mountPoint)
                     }
                 }
@@ -569,8 +605,7 @@ private fun collectStorageInfo(): StorageInfo {
                     val parts = line.split(" ")
                     if (parts.size >= 2) {
                         val mountPoint = parts[1]
-                        if (mountPoint.startsWith("/data") || mountPoint == "/system" ||
-                            mountPoint == "/cache" || mountPoint == "/vendor") {
+                        if (isRelevantStorageMount(mountPoint)) {
                             if (mountPoint !in partitions) partitions.add(mountPoint)
                         }
                     }
@@ -943,10 +978,26 @@ private fun parseSocFromHardwareLine(hardware: String): String? {
     }
 }
 
-private fun buildClusterInfo(cpuParts: List<String>, cpuImplementers: List<String>): String {
+internal fun buildClusterInfo(
+    cpuParts: List<String>,
+    cpuImplementers: List<String>,
+    socName: String = "",
+    cpuMaxFreqs: List<Long> = emptyList(),
+    cpuIndices: List<Int> = emptyList()
+): String {
     if (cpuParts.isEmpty()) return ""
 
-    val clusters = cpuParts.groupingBy { it }.eachCount()
+    data class CpuCluster(val partHex: String, val count: Int, val maxFreqKhz: Long)
+
+    val clusters = cpuParts.withIndex()
+        .groupBy { it.value }
+        .map { (partHex, cores) ->
+            val maxFreq = cores.mapNotNull { (listIndex, _) ->
+                val cpuIndex = cpuIndices.getOrNull(listIndex)?.takeIf { it >= 0 } ?: listIndex
+                cpuMaxFreqs.getOrNull(cpuIndex)?.takeIf { it > 0 }
+            }.maxOrNull() ?: 0L
+            CpuCluster(partHex, cores.size, maxFreq)
+        }
     if (clusters.isEmpty()) return ""
 
     val implementer = cpuImplementers.firstOrNull()?.uppercase(Locale.US) ?: ""
@@ -964,14 +1015,48 @@ private fun buildClusterInfo(cpuParts: List<String>, cpuImplementers: List<Strin
         sb.appendLine("CPU Vendor: $vendorName")
     }
 
-    for ((partHex, count) in clusters.entries.sortedByDescending { it.value }) {
-        val coreName = lookupCpuCoreName(partHex)
-        val partDecimal = partHex.removePrefix("0x").toIntOrNull(16)
-        val partLabel = if (partDecimal != null) "$partHex ($partDecimal)" else partHex
-        sb.appendLine("$count x $coreName [$partLabel]")
+    val hasFrequencies = clusters.any { it.maxFreqKhz > 0 }
+    // The lowest-frequency cluster is normally the efficiency (Silver)
+    // cluster. When the kernel does not expose frequencies, fall back to the
+    // largest cluster, which is also normally the efficiency cluster.
+    val silverCluster = if (hasFrequencies) {
+        clusters.filter { it.maxFreqKhz > 0 }.minByOrNull { it.maxFreqKhz }
+    } else {
+        clusters.maxByOrNull { it.count }
+    }
+    val sortedClusters = if (hasFrequencies) {
+        clusters.sortedWith(compareByDescending<CpuCluster> { it.maxFreqKhz }.thenByDescending { it.count })
+    } else {
+        clusters.sortedBy { it.count }
+    }
+
+    // Do not trust the Gold/Silver label embedded in the CPU part mapping:
+    // several Qualcomm SoCs reuse the same part IDs.
+    for (cluster in sortedClusters) {
+        val coreName = resolveClusterCoreName(cluster.partHex, socName)
+        val role = when {
+            sortedClusters.size == 1 -> ""
+            cluster.partHex == silverCluster?.partHex -> "Silver"
+            else -> "Gold"
+        }
+        val displayName = if (role.isBlank()) coreName else "$coreName ($role)"
+        val partDecimal = cluster.partHex.removePrefix("0x").toIntOrNull(16)
+        val partLabel = if (partDecimal != null) "${cluster.partHex} ($partDecimal)" else cluster.partHex
+        sb.appendLine("${cluster.count} x $displayName [$partLabel]")
     }
 
     return sb.toString().trim()
+}
+
+private fun resolveClusterCoreName(partHex: String, socName: String): String {
+    val baseName = lookupCpuCoreName(partHex).substringBefore(" (")
+    val soc = socName.lowercase(Locale.US)
+    return when {
+        baseName == "Kryo 485" && soc.contains("snapdragon 675") -> "Kryo 460"
+        baseName == "Kryo 485" &&
+            (soc.contains("snapdragon 730") || soc.contains("snapdragon 732g")) -> "Kryo 470"
+        else -> baseName
+    }
 }
 
 private fun lookupCpuCoreName(partHex: String): String {
