@@ -29,7 +29,11 @@ val hasReleaseSigning = releaseKeystoreFile?.isFile == true &&
 
 android {
     namespace = "com.hitomatito.hardwire"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "com.hitomatito.hardwire"
